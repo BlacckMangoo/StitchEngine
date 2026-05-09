@@ -5,8 +5,8 @@ set(CMAKE_CXX_STANDARD 20)
 
 add_subdirectory(./external/glfw)
 add_subdirectory(./external/glm)
-
-add_library(glad external/glad/src/gl.c)
+add_subdirectory(./external/tinyobjloader)
+add_library(glad external/glad/src/glad.c)
 target_include_directories(glad PUBLIC external/glad/include)
 
 add_library(imgui
@@ -31,4 +31,4 @@ add_executable(StitchEngine ${CPP_SOURCES})
 
 target_include_directories(StitchEngine PRIVATE ${CMAKE_SOURCE_DIR}/include)
 
-target_link_libraries(StitchEngine glfw glm imgui glad)
+target_link_libraries(StitchEngine glfw glm imgui glad )

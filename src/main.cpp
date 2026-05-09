@@ -1,5 +1,5 @@
 #include <iostream>
-#include <glad/gl.h>
+#include <glad/glad.h>
 #include "GLFW/glfw3.h"
 #include "glm/glm.hpp"
 #include "glm/gtc/matrix_transform.hpp"
@@ -8,13 +8,77 @@
 #include <filesystem>
 #include "shader.h"
 
+#define TINYOBJLOADER_IMPLEMENTATION
+#include "tinyObjLoader.h"
+
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb/stbImage.h>
+
+// defines how GPU interprets a set of bytes
+struct VertexAttribute
+{
+    GLuint location; // location inside shader : layout(location = 0)
+    GLuint binding;  // binding point ( where does this attribute read bytes from)
+    GLint  size;    // no of components like Vec3 has 3 x,y and z
+    GLenum type;     //type of data ex float,unsigned int etc..
+    GLboolean normalized; // whether to normalize fixed-point data
+    size_t offset;       // byte offset from start of the vertex for the start of this particular attribute
+};
+
+//determines how a GPU walks through a stream of bytes
+struct VertexBinding
+{
+    GLuint binding{};
+    size_t offset{}; // helps us avoid separate VBO and make large arena allocations
+    GLsizei stride{};
+};
+
+struct VertexLayout
+{
+    std::vector<VertexAttribute> attributes; // what does a bunch of 101010101 mean
+    std::vector<VertexBinding> bindings; // how to fetch those 1010101010
+};
+
+// note to self :
+//Old open gl combines binding and attribute into one thing , but they are fundamentally separate things
+// separating them allows way more flexibility , enables stuff like instancing , interleaved and non interleaved data
 
 
 struct Vertex {
     glm::vec3 pos;
     glm::vec2 texCoord;
+};
+
+struct VertexStream {
+    std::vector<std::byte> data;
+    GLuint VBO {};
+    uint32_t stride {};
+};
+
+
+struct Mesh {
+    explicit  Mesh(const std::vector<VertexStream> &vertexBufferData, const std::vector<unsigned int> &indices) : vertexStreams(vertexBufferData) , indices(indices) {
+        glCreateBuffers(1, &EBO);
+        glCreateVertexArrays(1, &VAO);
+    };
+
+    ~Mesh() {
+        for ( const auto& v : vertexStreams) {
+            glDeleteBuffers(1, &v.VBO);
+        }
+        glDeleteBuffers(1, &EBO);
+        glDeleteVertexArrays(1, &VAO);
+    }
+
+    // VAO described to the GPU where does the Data come from , how to fetch data , and once fetched how to interpret it in a Shader Program
+    unsigned int VAO {};
+
+    // could be just one Interleaved Buffer [ px,py,pz, u, v, nx, ny, nz ] or could be multiple buffers [px,py,pz][u,v][nx,ny,nz]
+    //or could also be mixed [px,py,pz,u,v],[nx,ny,nz]
+    std::vector<VertexStream> vertexStreams;
+
+    unsigned int EBO {};
+    std::vector<unsigned int> indices ;
 };
 
 
@@ -79,7 +143,7 @@ constexpr unsigned int fbIndices[6] = {
 
 
 constexpr unsigned short OPENGL_MAJOR_VERSION = 4;
-constexpr unsigned short OPENGL_MINOR_VERSION = 5;
+constexpr unsigned short OPENGL_MINOR_VERSION = 6;
 
 constexpr int SCREEN_WIDTH = 1280;
 constexpr int SCREEN_HEIGHT = 1280;
@@ -153,7 +217,10 @@ void UpdateCamera(GLFWwindow* window) {
 
 
 
+
 int main() {
+
+
     if (!glfwInit()) {
         std::cout << "Failed to initialize GLFW!" << std::endl;
         return -1;
@@ -177,7 +244,7 @@ int main() {
     glfwSetCursorPosCallback(window, MouseCallback);
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
-    if (const int version = gladLoadGL(glfwGetProcAddress); version == 0) {
+    if (const int version = gladLoadGL(); version == 0) {
         std::cout << "Failed to initialize OpenGL context!" << std::endl;
         glfwTerminate();
         return -1;
@@ -193,16 +260,40 @@ int main() {
         return -1;
     }
 
+
+    //load models
+    const std::string file = "assets/models/Sponza/sponza.obj";
+    tinyobj::ObjReaderConfig reader_config;
+    reader_config.mtl_search_path = "assets/models/Sponza/"; // Path to material files
+
+    tinyobj::ObjReader reader;
+
+    if (!reader.ParseFromFile(file, reader_config)) {
+        if (!reader.Error().empty()) {
+            std::cerr << "TinyObjReader: " << reader.Error();
+        }
+        exit(1);
+    }
+
+    if (!reader.Warning().empty()) {
+        std::cout << "TinyObjReader: " << reader.Warning();
+    }
+
+    auto& attrib = reader.GetAttrib();
+    auto& shapes = reader.GetShapes();
+    auto& materials = reader.GetMaterials();
+
     GLuint imageTex;
     const int mipLevels = static_cast<int>(std::floor(std::log2(std::max(width, height)))) + 1;
 
     glCreateTextures(GL_TEXTURE_2D, 1, &imageTex);
     glTextureParameteri(imageTex, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTextureParameteri(imageTex, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    glTextureParameteri(imageTex, GL_TEXTURE_MAG_FILTER, GL_LINEAR);         // mag can't use mips
-    glTextureParameteri(imageTex, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR); // mip filter goes HERE
-    glTextureStorage2D(imageTex, mipLevels, GL_RGBA8, width, height);        // allocate all mip levels
-    glTextureSubImage2D(imageTex, 0, 0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, data); // upload level 0
+    glTextureParameteri(imageTex, GL_TEXTURE_MAX_ANISOTROPY, GL_MAX_TEXTURE_MAX_ANISOTROPY);
+    glTextureParameteri(imageTex, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTextureParameteri(imageTex, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    glTextureStorage2D(imageTex, mipLevels, GL_RGBA8, width, height);
+    glTextureSubImage2D(imageTex, 0, 0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, data);
     glGenerateTextureMipmap(imageTex);
 
     stbi_image_free(data);
@@ -214,6 +305,19 @@ int main() {
     glCreateBuffers(1, &fbVBO);
     glCreateBuffers(1, &fbEBO);
     glCreateVertexArrays(1, &fbVAO);
+
+    glNamedBufferData(fbVBO, sizeof(Vertex) * fbQuadData.size(), fbQuadData.data(), GL_STATIC_DRAW);
+    glNamedBufferData(fbEBO, sizeof(fbIndices), fbIndices, GL_STATIC_DRAW);
+
+    glEnableVertexArrayAttrib(fbVAO, 0);
+    glVertexArrayAttribBinding(fbVAO, 0, 0);
+    glVertexArrayAttribFormat(fbVAO, 0, 3, GL_FLOAT, GL_FALSE, offsetof(Vertex, pos));
+    glEnableVertexArrayAttrib(fbVAO, 1);
+    glVertexArrayAttribBinding(fbVAO, 1, 0);
+    glVertexArrayAttribFormat(fbVAO, 1, 2, GL_FLOAT, GL_FALSE, offsetof(Vertex, texCoord));
+    glVertexArrayVertexBuffer(fbVAO, 0, fbVBO, 0, sizeof(Vertex));
+    glVertexArrayElementBuffer(fbVAO, fbEBO);
+
 
 
     unsigned int  framebufferTex;
@@ -234,6 +338,7 @@ int main() {
         std::cout << "Framebuffer error: " << fboStatus << "\n";
 
 
+
     const auto triangleShaderProgram = CreateProgram(GetFileText("shaders/vertexShader.vert"), GetFileText("shaders/fragShader.frag"));
     const auto frameBufferProgram = CreateProgram(GetFileText("shaders/frameBufferVert.vert"), GetFileText("shaders/frameBufferFrag.frag"));
 
@@ -247,6 +352,7 @@ int main() {
     glNamedBufferData(VBO, sizeof(Vertex) * quadData.size(), quadData.data(), GL_STATIC_DRAW);
     glNamedBufferData(EBO, sizeof(indices), indices, GL_STATIC_DRAW);
 
+
     glEnableVertexArrayAttrib(VAO, 0);
     glVertexArrayAttribBinding(VAO, 0, 0);
     glVertexArrayAttribFormat(VAO, 0, 3, GL_FLOAT, GL_FALSE, offsetof(Vertex, pos));
@@ -258,17 +364,6 @@ int main() {
     glVertexArrayVertexBuffer(VAO, 0, VBO, 0, sizeof(Vertex));
     glVertexArrayElementBuffer(VAO, EBO);
 
-    glNamedBufferData(fbVBO, sizeof(Vertex) * fbQuadData.size(), fbQuadData.data(), GL_STATIC_DRAW);
-    glNamedBufferData(fbEBO, sizeof(fbIndices), fbIndices, GL_STATIC_DRAW);
-
-    glEnableVertexArrayAttrib(fbVAO, 0);
-    glVertexArrayAttribBinding(fbVAO, 0, 0);
-    glVertexArrayAttribFormat(fbVAO, 0, 3, GL_FLOAT, GL_FALSE, offsetof(Vertex, pos));
-    glEnableVertexArrayAttrib(fbVAO, 1);
-    glVertexArrayAttribBinding(fbVAO, 1, 0);
-    glVertexArrayAttribFormat(fbVAO, 1, 2, GL_FLOAT, GL_FALSE, offsetof(Vertex, texCoord));
-    glVertexArrayVertexBuffer(fbVAO, 0, fbVBO, 0, sizeof(Vertex));
-    glVertexArrayElementBuffer(fbVAO, fbEBO);
 
 
     std::cout << glGetString(GL_RENDERER) << std::endl;
