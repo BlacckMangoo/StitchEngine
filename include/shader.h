@@ -1,6 +1,12 @@
 #pragma once
 #include <fstream>
 #include <string>
+#include <filesystem>
+#include <unordered_map>
+#include <iostream>
+#include <glad/glad.h>
+#include <glm/glm.hpp>
+#include <glm/gtc/type_ptr.hpp>
 
 inline std::string GetFileText(const std::filesystem::path& filePath) {
     std::ifstream file(filePath, std::ios::binary);
@@ -51,3 +57,45 @@ inline unsigned int CreateProgram(const std::string &vsc, const std::string &fsc
     glDeleteShader(fragmentShader);
     return program;
 }
+
+class Shader {
+public:
+    Shader(const std::string& vertFileSrc, const std::string& fragFileSrc) {
+        program = CreateProgram(vertFileSrc, fragFileSrc);
+    }
+
+    ~Shader() {
+        glDeleteProgram(program);
+    }
+
+    void Bind() const {
+        glUseProgram(program);
+    }
+    static void Unbind() {
+        glUseProgram(0);
+    }
+
+    void SetInt(const std::string& name, int value) {
+        glUniform1i(GetUniformLocation(name), value);
+    }
+
+    void SetMat4(const std::string& name, const glm::mat4& value) {
+        glUniformMatrix4fv(GetUniformLocation(name), 1, GL_FALSE, glm::value_ptr(value));
+    }
+
+private:
+    int GetUniformLocation(const std::string& name) {
+        if (const auto it = uniformLocationCache.find(name); it != uniformLocationCache.end()) {
+            return it->second;
+        }
+        const int location = glGetUniformLocation(program, name.c_str());
+        uniformLocationCache.emplace(name, location);
+        return location;
+    }
+
+    unsigned int program = 0;
+
+    // no point in getUniformLocation again and again every frame , just get it once and then reuse every frame
+
+    std::unordered_map<std::string, int> uniformLocationCache;
+};
