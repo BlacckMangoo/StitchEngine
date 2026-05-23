@@ -31,6 +31,7 @@ void main()
 
     vec3 lightDir = normalize(-DirectionalLightDirection);
     float diff = max(dot(normal, lightDir), 0.0);
+    float a = 1.0f ; 
 
     vec3 ambient = albedo * 0.1;
     vec3 diffuse = albedo * DirectionalLightColor * diff;
