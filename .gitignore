@@ -1,0 +1,29 @@
+# Visual Studio
+.vs/
+*.VC.db
+*.VC.opendb
+*.ipch
+
+# Build folders
+build/
+x64/
+Debug/
+Release/
+out/
+
+# CMake
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+
+# Generated binaries
+*.exe
+*.obj
+*.pdb
+*.ilk
+*.lib
+*.dll
+
+# OpenGL/temp
+*.log

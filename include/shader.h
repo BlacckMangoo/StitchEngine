@@ -16,10 +16,16 @@ inline std::string GetFileText(const std::filesystem::path& filePath) {
     };
 };
 
-
 inline unsigned int CreateProgram(const std::string &vsc, const std::string &fsc) {
+
+    if (vsc.empty() || fsc.empty()) {
+        std::cerr << "Shader source code is empty!" << std::endl;
+        return 0;
+    }
+
     const char* vertexSrc = vsc.c_str();
     const char* fragSrc = fsc.c_str();
+
     const auto vertexShader = glCreateShader(GL_VERTEX_SHADER);
     glShaderSource(vertexShader, 1, &vertexSrc, nullptr);
     glCompileShader(vertexShader);
@@ -83,6 +89,23 @@ public:
         glUniformMatrix4fv(GetUniformLocation(name), 1, GL_FALSE, glm::value_ptr(value));
     }
 
+    void SetFloat(const std::string& name, float value) {
+        glUniform1f(GetUniformLocation(name), value);
+	}
+    void SetVec2(const std::string& name, const glm::vec2& value) {
+        glUniform2fv(GetUniformLocation(name), 1, glm::value_ptr(value));
+    }
+    void SetVec3(const std::string& name, const glm::vec3& value) {
+        glUniform3fv(GetUniformLocation(name), 1, glm::value_ptr(value));
+    }
+    void SetVec4(const std::string& name, const glm::vec4& value) {
+        glUniform4fv(GetUniformLocation(name), 1, glm::value_ptr(value));
+	}
+
+    int GetId() const {
+        return program;
+    }
+
 private:
     int GetUniformLocation(const std::string& name) {
         if (const auto it = uniformLocationCache.find(name); it != uniformLocationCache.end()) {
@@ -96,6 +119,5 @@ private:
     unsigned int program = 0;
 
     // no point in getUniformLocation again and again every frame , just get it once and then reuse every frame
-
     std::unordered_map<std::string, int> uniformLocationCache;
 };
