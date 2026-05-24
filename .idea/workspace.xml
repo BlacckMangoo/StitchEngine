@@ -45,10 +45,6 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="2f7d0829-ed9b-4f39-a748-67f87704dfff" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/.idea/codeStyles/codeStyleConfig.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/include/sceneGraph.h" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/include/timeManager.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/editor.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/editor.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/assets/glTF-Sample-Assets/.gitattributes" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/assets/glTF-Sample-Assets/.github/workflows/AssetCheck.yml" beforeDir="false" />
@@ -66,14 +62,8 @@
       <change beforePath="$PROJECT_DIR$/assets/glTF-Sample-Assets/util/model.php" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/assets/glTF-Sample-Assets/util/modelmetadata.php" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/assets/glTF-Sample-Assets/util/run.bash" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/include/Texture.h" beforeDir="false" afterPath="$PROJECT_DIR$/include/Texture.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/include/camera.h" beforeDir="false" afterPath="$PROJECT_DIR$/include/camera.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/include/frameBuffer.h" beforeDir="false" afterPath="$PROJECT_DIR$/include/frameBuffer.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/include/mesh.h" beforeDir="false" afterPath="$PROJECT_DIR$/include/mesh.h" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/include/renderPass.h" beforeDir="false" afterPath="$PROJECT_DIR$/include/renderPass.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/include/resourceManager.h" beforeDir="false" afterPath="$PROJECT_DIR$/include/resourceManager.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/include/shader.h" beforeDir="false" afterPath="$PROJECT_DIR$/include/shader.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/include/window.h" beforeDir="false" afterPath="$PROJECT_DIR$/include/window.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/include/sceneGraph.h" beforeDir="false" afterPath="$PROJECT_DIR$/include/sceneGraph.h" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/out/build/x64-Debug-new/assets/glTF-Sample-Assets/.gitattributes" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/out/build/x64-Debug-new/assets/glTF-Sample-Assets/.github/workflows/AssetCheck.yml" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/out/build/x64-Debug-new/assets/glTF-Sample-Assets/.github/workflows/RebuildAllAssets.yml" beforeDir="false" />
@@ -90,9 +80,6 @@
       <change beforePath="$PROJECT_DIR$/out/build/x64-Debug-new/assets/glTF-Sample-Assets/util/model.php" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/out/build/x64-Debug-new/assets/glTF-Sample-Assets/util/modelmetadata.php" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/out/build/x64-Debug-new/assets/glTF-Sample-Assets/util/run.bash" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/shaders/defferedLighting.frag" beforeDir="false" afterPath="$PROJECT_DIR$/shaders/defferedLighting.frag" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/main.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/window.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/window.cpp" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -158,6 +145,7 @@
     "ModuleVcsDetector.initialDetectionPerformed": "true",
     "RunOnceActivity.RadMigrateCodeStyle": "true",
     "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
     "RunOnceActivity.cidr.known.project.marker": "true",
     "RunOnceActivity.git.unshallow": "true",
     "RunOnceActivity.readMode.enableVisualFormatting": "true",
@@ -167,7 +155,7 @@
     "cf.advertisement.text.overridden": "true",
     "cf.first.check.clang-format": "false",
     "cidr.known.project.marker": "true",
-    "git-widget-placeholder": "master",
+    "git-widget-placeholder": "refactorSceneNode",
     "node.js.detected.package.eslint": "true",
     "node.js.detected.package.tslint": "true",
     "node.js.selected.package.eslint": "(autodetect)",
@@ -181,11 +169,6 @@
 }]]></component>
   <component name="RunManager" selected="CMake Application.StitchEngine">
     <configuration name="StitchEngine" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="StitchEngine" TARGET_NAME="StitchEngine" CONFIG_NAME="Release" RUN_TARGET_PROJECT_NAME="StitchEngine" RUN_TARGET_NAME="StitchEngine">
-      <method v="2">
-        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
-      </method>
-    </configuration>
-    <configuration default="true" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true">
       <method v="2">
         <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
       </method>
@@ -242,15 +225,6 @@
       <method v="2">
         <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
       </method>
-    </configuration>
-    <configuration default="true" type="EXTERNAL_TOOL_RUN_CONFIGURATION" factoryName="LaTeX configuration factory">
-      <texify-external>
-        <program>PYTHONTEX</program>
-        <main-file />
-        <work-dir />
-        <envs />
-      </texify-external>
-      <method v="2" />
     </configuration>
     <configuration default="true" type="LATEX_RUN_CONFIGURATION" factoryName="LaTeX configuration factory">
       <texify>

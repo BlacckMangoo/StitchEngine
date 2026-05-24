@@ -7,6 +7,7 @@ struct RenderObject {
     Material *material;
     glm::mat4 transform;
     Mesh *mesh;
+    int primIndex ;
 };
 
 
@@ -26,7 +27,7 @@ struct RenderPass {
 };
 
 inline void Render(const std::vector<RenderObject> &renderObjects) {
-    for (const auto &[material, transform, mesh]: renderObjects) {
+    for (const auto &[material, transform, mesh,i]: renderObjects) {
         material->shader->Bind();
 
         for (auto &[name, value]: material->uniforms) {
@@ -69,7 +70,7 @@ inline void Render(const std::vector<RenderObject> &renderObjects) {
 
         material->shader->SetMat4("model", transform);
 
-        mesh->Draw();
+        mesh->primitives[i].Draw();
     }
 }
 

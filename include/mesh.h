@@ -484,12 +484,5 @@ struct Mesh {
     }
 
     std::vector<GlPrimitive> primitives;
-
-    void Draw() const {
-        for (const auto &primitive: primitives) {
-            primitive.Draw();
-        }
-    }
-
     std::string name{};
 };

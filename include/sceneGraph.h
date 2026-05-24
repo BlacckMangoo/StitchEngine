@@ -241,7 +241,7 @@ private:
     }
 };
 
-void BuildRenderQueue(
+inline void BuildRenderQueue(
     const SceneNode *node,
     std::vector<RenderObject> &renderQueue) {
     if (node->mesh && node->material) {
@@ -251,12 +251,14 @@ void BuildRenderQueue(
                 node->GetComponent<TransformComponent>()) {
             model = transform->worldTransform;
         }
-
-        renderQueue.push_back({
-            node->material,
-            model,
-            node->mesh
-        });
+        for ( int i = 0 ; i < node->mesh->primitives.size() ; ++i ) {
+            renderQueue.push_back({
+                node->material,
+                model,
+                node->mesh,
+                i
+            });
+        }
     }
 
     for (const auto &child: node->children) {
