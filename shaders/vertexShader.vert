@@ -4,7 +4,6 @@ layout(location = 0) in vec3 pos;
 layout(location = 1) in vec3 normal;
 layout(location = 2) in vec2 uv;
 
-
 uniform mat4 model;
 
 out vec3 worldPos;
@@ -33,6 +32,7 @@ void main()
     UVs = uv;
     vec4 world = model * vec4(pos, 1.0);
     worldPos = world.xyz;
+
     Normal = mat3(transpose(inverse(model))) * normal; // Normal Matrix for correcting non uniform scaling
 
 }

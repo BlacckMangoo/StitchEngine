@@ -1,4 +1,5 @@
 #pragma once
+#include "glad/glad.h"
 
 struct alignas(16) TimeUniformBufferObject {
     float deltaTime = 0.0;

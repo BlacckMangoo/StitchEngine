@@ -4,9 +4,9 @@
 struct DirectionalLight;
 
 struct RenderObject {
-    Material *material;
+    MaterialHandle material;
     glm::mat4 transform;
-    Mesh *mesh;
+    MeshHandle mesh;
     int primIndex ;
 };
 
@@ -26,51 +26,47 @@ struct RenderPass {
     bool cullFace;
 };
 
-inline void Render(const std::vector<RenderObject> &renderObjects) {
+inline void Render(const std::vector<RenderObject> &renderObjects, const ResourceManager& rm ) {
     for (const auto &[material, transform, mesh,i]: renderObjects) {
-        material->shader->Bind();
+        rm.ResolveShader(rm.ResolveMaterial(material)->shader)->Bind();
 
-        for (auto &[name, value]: material->uniforms) {
+        for (auto &[name, value]: rm.ResolveMaterial(material)->uniforms) {
             std::visit(
                 [&]<typename T0>(T0 &&v) {
                     using T = std::decay_t<T0>;
 
                     if constexpr (std::is_same_v<T, int>)
-                        material->shader->SetInt(name, v);
+                        rm.ResolveShader(rm.ResolveMaterial(material)->shader)->SetInt(name, v);
 
                     else if constexpr (std::is_same_v<T, float>)
-                        material->shader->SetFloat(name, v);
+                        rm.ResolveShader(rm.ResolveMaterial(material)->shader)->SetFloat(name, v);
 
                     else if constexpr (std::is_same_v<T, glm::vec2>)
-                        material->shader->SetVec2(name, v);
+                       rm.ResolveShader(rm.ResolveMaterial(material)->shader)->SetVec2(name, v);
 
                     else if constexpr (std::is_same_v<T, glm::vec3>)
-                        material->shader->SetVec3(name, v);
+                        rm.ResolveShader(rm.ResolveMaterial(material)->shader)->SetVec3(name, v);
 
                     else if constexpr (std::is_same_v<T, glm::vec4>)
-                        material->shader->SetVec4(name, v);
+                       rm.ResolveShader(rm.ResolveMaterial(material)->shader)->SetVec4(name, v);
 
                     else if constexpr (std::is_same_v<T, glm::mat4>)
-                        material->shader->SetMat4(name, v);
+                        rm.ResolveShader(rm.ResolveMaterial(material)->shader)->SetMat4(name, v);
                 },
                 value);
         }
 
         int textureUnit = 0;
 
-        for (const auto &[name, texture]: material->textures) {
-            texture.first->BindTo(textureUnit);
-
-            texture.second->BindTo(textureUnit);
-
-            material->shader->SetInt(name, textureUnit);
-
+        for (const auto &[name, texture]: rm.ResolveMaterial(material)->textures) {
+            rm.ResolveTexture(texture.first)->BindTo(textureUnit);
+            rm.ResolveSampler(texture.second)->BindTo(textureUnit);
+            rm.ResolveShader(rm.ResolveMaterial(material)->shader)->SetInt(name, textureUnit);
             ++textureUnit;
         }
 
-        material->shader->SetMat4("model", transform);
-
-        mesh->primitives[i].Draw();
+        rm.ResolveShader(rm.ResolveMaterial(material)->shader)->SetMat4("model", transform);
+        rm.ResolveMesh(mesh)->primitives[i].Draw();
     }
 }
 

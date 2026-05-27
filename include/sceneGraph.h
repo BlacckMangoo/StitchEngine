@@ -5,6 +5,11 @@ struct DirectionalLight {
     glm::vec3 color;
 };
 
+struct PointLight {
+    glm::vec3 color;
+    float intensity;
+    float radius ;
+};
 
 struct SceneNode;
 
@@ -20,9 +25,8 @@ struct Component {
 
 struct SceneNode {
     SceneNode() = default;
-
-    SceneNode(Mesh *mesh, Material *mat)
-        : mesh(mesh), material(mat) {
+    SceneNode(const MeshHandle& mesh)
+        : mesh(mesh) {
     }
 
     template<typename T>
@@ -30,7 +34,6 @@ struct SceneNode {
         auto ptr = std::make_unique<T>(std::move(component));
 
         T *raw = ptr.get();
-
         components.push_back(std::move(ptr));
 
         return raw;
@@ -59,9 +62,7 @@ struct SceneNode {
     }
 
     SceneNode *parent = nullptr;
-
-    Mesh *mesh = nullptr;
-    Material *material = nullptr;
+    MeshHandle mesh{};
 
     std::string name{};
 
@@ -69,8 +70,8 @@ struct SceneNode {
     std::vector<std::unique_ptr<Component> > components;
 };
 
-struct LightComponent : Component {
-    LightComponent(DirectionalLight *light)
+struct DirectionalLightComponent : Component {
+    DirectionalLightComponent(DirectionalLight *light)
         : light(light) {
     }
 
@@ -86,6 +87,35 @@ struct LightComponent : Component {
             0.05f);
     }
 };
+
+struct PointLightComponent : Component {
+    PointLightComponent(const PointLight& light)
+        : light(light) {
+    }
+
+    PointLight light{};
+
+    void DrawUi() override {
+        ImGui::ColorEdit3(
+            "Light Color", &light.color.x);
+
+        ImGui::DragFloat(
+            "Light Intensity",
+            &light.intensity,
+            0.1f,
+            0.0f,
+            100.0f);
+
+        ImGui::DragFloat (
+            "Radius",
+            &light.radius,
+            0.1f,
+            0.0f,
+            100.0f );
+
+    };
+};
+
 
 struct TransformComponent : Component {
     TransformComponent(const Transform &trans)
@@ -196,15 +226,15 @@ struct SceneGraph {
 
     static void AddNode(
         SceneNode *parent,
-        std::unique_ptr<SceneNode> child) {
+        std::unique_ptr<SceneNode> child,ResourceManager& rm ) {
         assert(parent && child);
 
         child->parent = parent;
 
         if (child->name.empty()) {
             child->name =
-                    child->mesh
-                        ? child->mesh->name
+                    rm.ResolveMesh(child->mesh)
+                        ? rm.ResolveMesh(child->mesh)->name
                         : "Node";
         }
 
@@ -241,28 +271,28 @@ private:
     }
 };
 
-inline void BuildRenderQueue(
-    const SceneNode *node,
-    std::vector<RenderObject> &renderQueue) {
-    if (node->mesh && node->material) {
-        auto model = glm::mat4(1.0f);
+inline void BuildRenderQueue(const SceneNode *node,std::vector<RenderObject> &renderQueue,ResourceManager& rm) {
 
+    if (rm.ResolveMesh(node->mesh) != nullptr) {
+        auto model = glm::mat4(1.0f);
         if (auto *transform =
-                node->GetComponent<TransformComponent>()) {
+            node->GetComponent<TransformComponent>()) {
             model = transform->worldTransform;
         }
-        for ( int i = 0 ; i < node->mesh->primitives.size() ; ++i ) {
-            renderQueue.push_back({
-                node->material,
-                model,
-                node->mesh,
-                i
-            });
+        for ( int i = 0 ; i < rm.ResolveMesh(node->mesh)->primitives.size() ; ++i ) {
+            RenderObject ro{};
+
+            ro.mesh = node->mesh;
+            ro.primIndex = i;
+            ro.transform = model;
+            ro.material = rm.ResolveMesh(node->mesh)->primitives[i].material;
+            renderQueue.push_back(ro);
+
         }
     }
 
     for (const auto &child: node->children) {
-        BuildRenderQueue(child.get(), renderQueue);
+        BuildRenderQueue(child.get(), renderQueue,rm);
     }
 }
 
@@ -320,4 +350,4 @@ static void DrawSceneGraphWindow(
     );
 
     ImGui::End();
-}
+};

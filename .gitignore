@@ -4,6 +4,9 @@
 *.VC.opendb
 *.ipch
 
+#clion
+.idea/
+
 # Build folders
 build/
 x64/

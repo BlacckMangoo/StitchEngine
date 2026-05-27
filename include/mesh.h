@@ -8,12 +8,11 @@
 #include "glm/gtc/type_ptr.hpp"
 #include "glm/gtx/quaternion.hpp"
 #include <glm/gtx/matrix_decompose.hpp>
-
-#include <cstring>
-#include <memory>
 #include <string>
 #include <utility>
 #include <vector>
+
+
 
 // ##CASES FOR VERTEX DATA LAYOUT
 
@@ -42,6 +41,15 @@
 // interleaved and non interleaved data
 
 // defines how GPU interprets a set of bytes
+
+
+struct TextureHandle  { uint32_t id = UINT32_MAX; bool IsValid() const { return id != UINT32_MAX; } };
+struct MeshHandle     { uint32_t id = UINT32_MAX; bool IsValid() const { return id != UINT32_MAX; } };
+struct MaterialHandle { uint32_t id = UINT32_MAX; bool IsValid() const { return id != UINT32_MAX; } };
+struct ShaderHandle   { uint32_t id = UINT32_MAX; bool IsValid() const { return id != UINT32_MAX; } };
+struct SamplerHandle  { uint32_t id = UINT32_MAX; bool IsValid() const { return id != UINT32_MAX; } };
+
+
 
 struct Transform {
     glm::vec3 position = {0.0f, 0.0f, 0.0f};
@@ -92,7 +100,7 @@ MakeVertexStream(const std::vector<float> &interleavedData) {
     return stream;
 }
 
-VertexLayout PosTexLayout{
+inline VertexLayout PosTexLayout{
     .attributes =
     {
         {0, 0, 3, GL_FLOAT, GL_FALSE, 0}, // position attribute
@@ -109,7 +117,7 @@ VertexLayout PosTexLayout{
     }
 };
 
-VertexLayout PosNormTexLayout{
+inline VertexLayout PosNormTexLayout{
     .attributes =
     {
         {0, 0, 3, GL_FLOAT, GL_FALSE, 0}, // position attribute
@@ -128,6 +136,20 @@ struct PrimitiveData {
     std::vector<unsigned int> indices;
     VertexLayout layout;
 };
+
+
+using UniformValue =
+std::variant<int, float, glm::vec2, glm::vec3, glm::vec4, glm::mat4>;
+
+
+struct Material {
+    ShaderHandle shader ;
+    std::unordered_map<std::string, UniformValue>
+    uniforms; // "nameInShaderCode", value
+    std::unordered_map<std::string, std::pair<TextureHandle, SamplerHandle> >
+    textures; //  "nameInShaderCode",Texture
+};
+
 
 const std::vector<float> cubeInterleavedDataPosNormTex = {
     // position              // normal               // uv
@@ -414,6 +436,7 @@ struct GlPrimitive {
     std::vector<unsigned int> indices{};
     std::vector<unsigned int> VBOs{};
     VertexLayout layout{};
+    mutable MaterialHandle material{};
 
 private:
     void InitializeBuffers() {
@@ -475,14 +498,14 @@ private:
         other.VAO = 0;
         other.EBO = 0;
         other.VBOs.clear();
+        material = std::exchange(other.material, MaterialHandle{});
     }
 };
 
 struct Mesh {
     Mesh(const std::string_view name, std::vector<GlPrimitive> &&primitives)
-        : primitives(std::move(primitives)), name(name) {
+        : primitives(std::move(primitives)), name(name){
     }
-
     std::vector<GlPrimitive> primitives;
     std::string name{};
 };

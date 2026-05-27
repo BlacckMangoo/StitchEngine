@@ -56,57 +56,16 @@ int main() {
     }
 
     auto timeManager = TimeManager();
-
-    // Meshes
-    std::vector<GlPrimitive> quadPrimitives;
-    quadPrimitives.emplace_back(
-        std::vector<VertexStream>{quadVertexStream},
-        std::vector<unsigned int>{quadIndices, quadIndices + 6},
-        PosNormTexLayout);
-
-    std::vector<GlPrimitive> quadForFullScreenPrimitives;
-    quadForFullScreenPrimitives.emplace_back(
-        std::vector<VertexStream>{quadForFullScreenVertexStream},
-        std::vector<unsigned int>{quadIndices, quadIndices + 6}, PosTexLayout);
-
-
-    std::vector<GlPrimitive> cubePrimitives;
-    cubePrimitives.emplace_back(std::vector<VertexStream>{cubeVertexStream},
-                                std::vector<unsigned int>{indices, indices + 36}, PosNormTexLayout);
-
-
     ImguiInit(window);
-
     ResourceManager resourceManager;
 
-    resourceManager.LoadMesh(std::move(quadPrimitives), "Quad");
-    resourceManager.LoadMesh(std::move(quadForFullScreenPrimitives),
-                             "QuadForFullScreen");
-    resourceManager.LoadMesh(std::move(cubePrimitives), "Cube");
-    resourceManager.LoadGLTFMesh(
-        GLTF_MODEL_PATH / "CesiumMan/glTF/CesiumMan.gltf", "CesiumMan");
-
-    resourceManager.LoadGLTFMesh(
-        GLTF_MODEL_PATH / "DamagedHelmet/glTF/DamagedHelmet.gltf",
-        "DamagedHelmet");
-    // lantern
-    resourceManager.LoadGLTFMesh(
-        GLTF_MODEL_PATH / "Lantern/glTF/Lantern.gltf",
-        "Lantern");
-
-    //sponza
-    resourceManager.LoadGLTFMesh(
-        GLTF_MODEL_PATH / "Sponza/glTF/Sponza.gltf",
-        "Sponza");
-
-
-    // Texture
+       // Texture
 
     TextureDescription TexDesc{.internalformat = GL_RGBA8, .hasMipmap = true};
     TextureDescription posDesc{.internalformat = GL_RGB32F, .hasMipmap = false};
     TextureDescription depthDesc{.internalformat = GL_DEPTH_COMPONENT24, .hasMipmap = false};
-    resourceManager.LoadTexture("assets/img.png", TexDesc, "catTexture");
-    resourceManager.LoadTexture("assets/metal.jpg", TexDesc, "metalTexture");
+    auto catTexture = resourceManager.LoadTexture("assets/img.png", TexDesc, "catTexture");
+    auto metalTexture = resourceManager.LoadTexture("assets/metal.jpg", TexDesc, "metalTexture");
 
     float maxAniso = 0.0f;
     glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY, &maxAniso);
@@ -118,7 +77,7 @@ int main() {
         .maxAnisotropy = maxAniso,
     };
 
-    resourceManager.LoadSampler(samplerDesc, "sampler");
+    auto sampler = resourceManager.LoadSampler(samplerDesc, "sampler");
 
     TextureDescription rtDesc{.internalformat = GL_RGBA8, .hasMipmap = false};
     SamplerDescription rtSamplerDesc{
@@ -129,15 +88,15 @@ int main() {
         .maxAnisotropy = std::nullopt,
     };
 
-    resourceManager.CreateRenderTarget(window.width(), window.height(), rtDesc,
+    auto colorTex = resourceManager.CreateRenderTarget(window.width(), window.height(), rtDesc,
                                        "colorTargetTexture");
-    resourceManager.CreateRenderTarget(window.width(), window.height(), posDesc,
+    auto PosTex = resourceManager.CreateRenderTarget(window.width(), window.height(), posDesc,
                                        "PositionTexture");
-    resourceManager.CreateRenderTarget(window.width(), window.height(), rtDesc,
+    auto uvTex = resourceManager.CreateRenderTarget(window.width(), window.height(), rtDesc,
                                        "UvTexture");
-    resourceManager.CreateRenderTarget(window.width(), window.height(), posDesc,
+    auto normalTex = resourceManager.CreateRenderTarget(window.width(), window.height(), posDesc,
                                        "NormalTexture");
-    resourceManager.CreateRenderTarget(window.width(), window.height(), depthDesc,
+    auto depthTex = resourceManager.CreateRenderTarget(window.width(), window.height(), depthDesc,
                                        "DepthTexture");
 
     // Sampler frameBufferSampler(rtSamplerDesc);
@@ -145,12 +104,11 @@ int main() {
 
     FrameBuffer gBuffer;
 
-    gBuffer.AddColorAttachment(
-        resourceManager.GetTexture("colorTargetTexture")->id);
-    gBuffer.AddColorAttachment(resourceManager.GetTexture("PositionTexture")->id);
-    gBuffer.AddColorAttachment(resourceManager.GetTexture("UvTexture")->id);
-    gBuffer.AddColorAttachment(resourceManager.GetTexture("NormalTexture")->id);
-    gBuffer.AddDepthAttachmentTexture(resourceManager.GetTexture("DepthTexture")->id);
+    gBuffer.AddColorAttachment(resourceManager.ResolveTexture(colorTex)->id);
+    gBuffer.AddColorAttachment(resourceManager.ResolveTexture(PosTex)->id);
+    gBuffer.AddColorAttachment(resourceManager.ResolveTexture(uvTex)->id);
+    gBuffer.AddColorAttachment(resourceManager.ResolveTexture(normalTex)->id);
+    gBuffer.AddDepthAttachmentTexture(resourceManager.ResolveTexture(depthTex)->id);
 
     gBuffer.FinalizeColorAttachments();
     gBuffer.Validate();
@@ -161,21 +119,21 @@ int main() {
     glNamedRenderbufferStorage(lightingPassRBO, GL_DEPTH_COMPONENT24, window.width(), window.height());
 
 
-    resourceManager.CreateRenderTarget(window.width(), window.height(), posDesc, "litSceneTexture");
+   auto litSceneTex =  resourceManager.CreateRenderTarget(window.width(), window.height(), posDesc, "litSceneTexture");
 
     FrameBuffer lightingPassBuffer;
 
-    lightingPassBuffer.AddColorAttachment(resourceManager.GetTexture("litSceneTexture")->id);
+    lightingPassBuffer.AddColorAttachment(resourceManager.ResolveTexture(litSceneTex)->id);
     lightingPassBuffer.AddDepthAttachmentRenderBuffer(lightingPassRBO);
     lightingPassBuffer.FinalizeColorAttachments();
     lightingPassBuffer.Validate();
 
-    resourceManager.LoadShader("shaders/vertexShader.vert",
+    auto defaultShader = resourceManager.LoadShader("shaders/vertexShader.vert",
                                "shaders/fragShader.frag", "defaultShader");
-    resourceManager.LoadShader("shaders/frameBufferVert.vert",
+    auto fsShader = resourceManager.LoadShader("shaders/frameBufferVert.vert",
                                "shaders/frameBufferFrag.frag",
                                "fullScreenShader");
-    resourceManager.LoadShader("shaders/frameBufferVert.vert",
+    auto deferredLitShad = resourceManager.LoadShader("shaders/frameBufferVert.vert",
                                "shaders/defferedLighting.frag",
                                "deferredLightingShader");
 
@@ -185,25 +143,41 @@ int main() {
         .color = {1.0f, 1.0f, 1.0f}
     };
 
+    std::vector<PointLight> pointLights{
+        {
+            .color = {1.0f, 0.0f, 0.0f},
+            .intensity = 1.0f,
+            .radius = 5.0f
+        },
+        {
+            .color = {0.0f, 1.0f, 0.0f},
+            .intensity = 1.0f,
+            .radius = 5.0f
+        },
+        {
+            .color = {0.0f, 0.0f, 1.0f},
+            .intensity = 1.0f,
+            .radius = 5.0f
+        }
+    };
+
+
+
 
     std::cout << glGetString(GL_RENDERER) << '\n';
 
-    resourceManager.LoadMaterial(
-        "defaultShader", {}, {{"tex", std::make_pair("catTexture", "sampler")}},
+    auto catMat = resourceManager.LoadMaterial(defaultShader, {}, {{"baseColor", std::make_pair("catTexture", "sampler")}},
         "catMat");
 
-    resourceManager.LoadMaterial(
-        "defaultShader", {}, {{"tex", std::make_pair("metalTexture", "sampler")}},
+   auto metalMat =  resourceManager.LoadMaterial(defaultShader,{}, {{"baseColor", std::make_pair("metalTexture", "sampler")}},
         "metalMat");
 
-    resourceManager.LoadMaterial(
-        "fullScreenShader", {},
+   auto fullScreenMat =  resourceManager.LoadMaterial( fsShader,{},
         {{"screen", std::make_pair("litSceneTexture", "frameBufferSampler")}},
         "fullScreenMat");
 
-
-    resourceManager.LoadMaterial(
-        "deferredLightingShader",
+    auto litSceneMat = resourceManager.LoadMaterial(
+        deferredLitShad,
         {
             {"DirectionalLightDirection", dirLight.direction},
             {"DirectionalLightColor", dirLight.color}
@@ -215,6 +189,54 @@ int main() {
             {"Albedo", std::make_pair("colorTargetTexture", "frameBufferSampler")}
         },
         "deferredLightingMat");
+
+
+
+    // Meshes
+    std::vector<GlPrimitive> quadPrimitives;
+    quadPrimitives.emplace_back(
+        std::vector<VertexStream>{quadVertexStream},
+        std::vector<unsigned int>{quadIndices, quadIndices + 6},
+        PosNormTexLayout);
+
+    std::vector<GlPrimitive> quadForFullScreenPrimitives;
+    for ( const auto& p : quadPrimitives) {
+        p.material = litSceneMat;
+    }
+
+    quadForFullScreenPrimitives.emplace_back(
+        std::vector<VertexStream>{quadForFullScreenVertexStream},
+        std::vector<unsigned int>{quadIndices, quadIndices + 6}, PosTexLayout);
+
+    for ( const auto& p : quadForFullScreenPrimitives) {
+        p.material = fullScreenMat;
+    }
+
+
+    std::vector<GlPrimitive> cubePrimitives;
+    cubePrimitives.emplace_back(std::vector<VertexStream>{cubeVertexStream},
+                                std::vector<unsigned int>{indices, indices + 36}, PosNormTexLayout);
+
+    resourceManager.LoadMesh(std::move(quadForFullScreenPrimitives),
+                             "QuadForFullScreen");
+
+
+
+    std::vector<MeshHandle> meshes;
+    meshes.emplace_back(resourceManager.LoadMesh(std::move(quadPrimitives), "Quad"));
+    meshes.emplace_back(    resourceManager.LoadMesh(std::move(cubePrimitives), "Cube"));
+
+    std::vector<MeshHandle> gltfMeshes ;
+    gltfMeshes.emplace_back(resourceManager.LoadGLTFMesh(
+        GLTF_MODEL_PATH / "Sponza/glTF/Sponza.gltf","Sponza"));
+
+
+    for (  auto& p : gltfMeshes) {
+        for ( auto& prim : resourceManager.ResolveMesh(p)->primitives) {
+            resourceManager.ResolveMaterial(prim.material)->shader = defaultShader;
+        }
+    }
+
 
     // Scene graph
     auto scene_graph = std::make_unique<SceneGraph>();
@@ -228,10 +250,10 @@ int main() {
             .rotation = glm::quat(glm::vec3(0.0f))
         }
     });
+
     SponzaNode->name = "SponzaNode";
     SponzaNode->mesh = resourceManager.GetMesh("Sponza");
-    SponzaNode->material = resourceManager.GetMaterial("metalMat");
-    SceneGraph::AddNode(&scene_graph->rootNode, std::move(SponzaNode));
+    SceneGraph::AddNode(&scene_graph->rootNode, std::move(SponzaNode),resourceManager);
 
     Camera cam;
 
@@ -247,7 +269,7 @@ int main() {
 
 
     auto lightNode = std::make_unique<SceneNode>();
-    lightNode->AddComponent<LightComponent>(&dirLight);
+    lightNode->AddComponent<DirectionalLightComponent>(&dirLight);
     lightNode->AddComponent<TransformComponent>(
         Transform{
             .position = {0.0f, 0.0f, 0.0f},
@@ -257,8 +279,20 @@ int main() {
     lightNode->name = "Directional Light";
 
 
-    SceneGraph::AddNode(&scene_graph->rootNode, std::move(camNode));
-    SceneGraph::AddNode(&scene_graph->rootNode, std::move(lightNode));
+    for ( const auto& light : pointLights) {
+        auto ln = std::make_unique<SceneNode>();
+        ln->AddComponent<TransformComponent>(Transform{
+        .position = {0.0f, 0.0f, 0.0f},
+        .scale = {1.0f, 1.0f, 1.0f},
+        .rotation = glm::quat(glm::vec3(0.0f))});
+        ln->name = "PointLight";
+        ln->AddComponent<PointLightComponent>(light);
+        SceneGraph::AddNode(&scene_graph->rootNode, std::move(ln),resourceManager);
+    }
+
+
+    SceneGraph::AddNode(&scene_graph->rootNode, std::move(camNode),resourceManager);
+    SceneGraph::AddNode(&scene_graph->rootNode, std::move(lightNode),resourceManager);
 
     std::vector<RenderObject> offScreenRenderQueue;
     std::vector<RenderObject> deferredLightingRenderQueue;
@@ -273,7 +307,7 @@ int main() {
         .clearColorValue = {0.0f, 0.0f, 0.0f, 1.0f},
         .depthTest = true,
         .blending = false,
-        .cullFace = true,
+        .cullFace = false,
     };
 
     RenderPass LightingPass{
@@ -299,6 +333,8 @@ int main() {
         .cullFace = false,
     };
 
+    int noOfPointLights = pointLights.size();
+
 
     while (!window.shouldClose()) {
         Window::pollEvents();
@@ -312,30 +348,33 @@ int main() {
 
         resourceManager.WatchPaths();
 
-        if (glfwGetKey(window.get(), GLFW_KEY_C) == GLFW_PRESS) {
-            resourceManager.GetMaterial("fullScreenMat")->textures["screen"] = std::make_pair(
-                resourceManager.GetTexture("colorTargetTexture"),
-                resourceManager.GetSampler("frameBufferSampler"));
-        }
+        //debug G buffer
+        {
+            if (glfwGetKey(window.get(), GLFW_KEY_C) == GLFW_PRESS) {
+                resourceManager.ResolveMaterial(resourceManager.GetMaterial("fullScreenMat"))->textures["screen"] = std::make_pair(
+                    resourceManager.GetTexture("colorTargetTexture"),
+                    resourceManager.GetSampler("frameBufferSampler"));
+            }
 
-        if (glfwGetKey(window.get(), GLFW_KEY_U) == GLFW_PRESS) {
-            resourceManager.GetMaterial("fullScreenMat")->textures["screen"] = std::make_pair(
-                resourceManager.GetTexture("UvTexture"), resourceManager.GetSampler("frameBufferSampler"));
-        }
+            if (glfwGetKey(window.get(), GLFW_KEY_U) == GLFW_PRESS) {
+                resourceManager.ResolveMaterial(resourceManager.GetMaterial("fullScreenMat"))->textures["screen"] = std::make_pair(
+                    resourceManager.GetTexture("UvTexture"), resourceManager.GetSampler("frameBufferSampler"));
+            }
 
-        if (glfwGetKey(window.get(), GLFW_KEY_P) == GLFW_PRESS) {
-            resourceManager.GetMaterial("fullScreenMat")->textures["screen"] = std::make_pair(
-                resourceManager.GetTexture("PositionTexture"), resourceManager.GetSampler("frameBufferSampler"));
-        }
+            if (glfwGetKey(window.get(), GLFW_KEY_P) == GLFW_PRESS) {
+                resourceManager.ResolveMaterial(resourceManager.GetMaterial("fullScreenMat"))->textures["screen"] = std::make_pair(
+                    resourceManager.GetTexture("PositionTexture"), resourceManager.GetSampler("frameBufferSampler"));
+            }
 
-        if (glfwGetKey(window.get(), GLFW_KEY_N) == GLFW_PRESS) {
-            resourceManager.GetMaterial("fullScreenMat")->textures["screen"] = std::make_pair(
-                resourceManager.GetTexture("NormalTexture"), resourceManager.GetSampler("frameBufferSampler"));
-        }
+            if (glfwGetKey(window.get(), GLFW_KEY_N) == GLFW_PRESS) {
+                resourceManager.ResolveMaterial(resourceManager.GetMaterial("fullScreenMat"))->textures["screen"] = std::make_pair(
+                    resourceManager.GetTexture("NormalTexture"), resourceManager.GetSampler("frameBufferSampler"));
+            }
 
-        if (glfwGetKey(window.get(), GLFW_KEY_L) == GLFW_PRESS) {
-            resourceManager.GetMaterial("fullScreenMat")->textures["screen"] = std::make_pair(
-                resourceManager.GetTexture("litSceneTexture"), resourceManager.GetSampler("frameBufferSampler"));
+            if (glfwGetKey(window.get(), GLFW_KEY_L) == GLFW_PRESS) {
+                resourceManager.ResolveMaterial(resourceManager.GetMaterial("fullScreenMat"))->textures["screen"] = std::make_pair(
+                    resourceManager.GetTexture("litSceneTexture"), resourceManager.GetSampler("frameBufferSampler"));
+            }
         }
 
 
@@ -345,31 +384,62 @@ int main() {
         });
 
         fullScreenRenderQueue.push_back({
-            resourceManager.GetMaterial("fullScreenMat"),
+            fullScreenMat,
             glm::mat4(1.0f), resourceManager.GetMesh("QuadForFullScreen")
         });
 
         timeManager.Tick();
 
 
-        BuildRenderQueue(&scene_graph->rootNode, offScreenRenderQueue);
+        BuildRenderQueue(&scene_graph->rootNode, offScreenRenderQueue,resourceManager);
 
         ExecuteRenderPass(OffScreenPass);
 
-        Render(offScreenRenderQueue);
+        Render(offScreenRenderQueue,resourceManager);
         offScreenRenderQueue.clear();
 
-        resourceManager.GetMaterial("deferredLightingMat")->uniforms["DirectionalLightDirection"] = dirLight.direction;
-        resourceManager.GetMaterial("deferredLightingMat")->uniforms["DirectionalLightColor"] = dirLight.color;
+        int lightIndex = 0;
+
+        for (const auto& node : scene_graph->rootNode.children)
+        {
+            auto* transformComp = node->GetComponent<TransformComponent>();
+            auto* pointLightComp = node->GetComponent<PointLightComponent>();
+
+            if (transformComp && pointLightComp)
+            {
+                auto& uniforms =
+                    resourceManager.ResolveMaterial(litSceneMat)->uniforms;
+
+                uniforms["pointLights[" + std::to_string(lightIndex) + "].color"]
+                    = pointLightComp->light.color;
+
+                uniforms["pointLights[" + std::to_string(lightIndex) + "].intensity"]
+                    = pointLightComp->light.intensity;
+
+                uniforms["pointLights[" + std::to_string(lightIndex) + "].radius"]
+                    = pointLightComp->light.radius;
+
+                uniforms["pointLights[" + std::to_string(lightIndex) + "].position"]
+                    = transformComp->transform.position;
+
+                ++lightIndex;
+            }
+
+        }
+
+        auto& uniforms =resourceManager.ResolveMaterial(litSceneMat)->uniforms;
+        uniforms["pointLightCount"] = lightIndex;
+        uniforms["DirectionalLightColor"] = dirLight.color;
+        uniforms["DirectionalLightDirection"] = glm::normalize(dirLight.direction);
 
 
         ExecuteRenderPass(LightingPass);
-        Render(deferredLightingRenderQueue);
+        Render(deferredLightingRenderQueue,resourceManager);
         deferredLightingRenderQueue.clear();
 
 
         ExecuteRenderPass(FullScreenPass);
-        Render(fullScreenRenderQueue);
+        Render(fullScreenRenderQueue,resourceManager);
         fullScreenRenderQueue.clear();
 
 
