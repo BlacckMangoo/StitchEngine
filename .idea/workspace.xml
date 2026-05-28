@@ -45,15 +45,7 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="2f7d0829-ed9b-4f39-a748-67f87704dfff" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/src/Texture.cpp" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/camera.cpp" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/frameBuffer.cpp" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/mesh.cpp" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/renderPass.cpp" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/resourceManager.cpp" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/sceneGraph.cpp" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/shader.cpp" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/timeManager.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/assets/glTF-Sample-Assets/.gitattributes" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/assets/glTF-Sample-Assets/.github/workflows/AssetCheck.yml" beforeDir="false" />
@@ -71,14 +63,10 @@
       <change beforePath="$PROJECT_DIR$/assets/glTF-Sample-Assets/util/model.php" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/assets/glTF-Sample-Assets/util/modelmetadata.php" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/assets/glTF-Sample-Assets/util/run.bash" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/include/Texture.h" beforeDir="false" afterPath="$PROJECT_DIR$/include/Texture.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/include/camera.h" beforeDir="false" afterPath="$PROJECT_DIR$/include/camera.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/include/frameBuffer.h" beforeDir="false" afterPath="$PROJECT_DIR$/include/frameBuffer.h" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/include/mesh.h" beforeDir="false" afterPath="$PROJECT_DIR$/include/mesh.h" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/include/renderPass.h" beforeDir="false" afterPath="$PROJECT_DIR$/include/renderPass.h" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/include/resourceManager.h" beforeDir="false" afterPath="$PROJECT_DIR$/include/resourceManager.h" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/include/sceneGraph.h" beforeDir="false" afterPath="$PROJECT_DIR$/include/sceneGraph.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/include/shader.h" beforeDir="false" afterPath="$PROJECT_DIR$/include/shader.h" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/include/timeManager.h" beforeDir="false" afterPath="$PROJECT_DIR$/include/timeManager.h" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/out/build/x64-Debug-new/assets/glTF-Sample-Assets/.gitattributes" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/out/build/x64-Debug-new/assets/glTF-Sample-Assets/.github/workflows/AssetCheck.yml" beforeDir="false" />
@@ -96,6 +84,10 @@
       <change beforePath="$PROJECT_DIR$/out/build/x64-Debug-new/assets/glTF-Sample-Assets/util/model.php" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/out/build/x64-Debug-new/assets/glTF-Sample-Assets/util/modelmetadata.php" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/out/build/x64-Debug-new/assets/glTF-Sample-Assets/util/run.bash" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/shaders/defferedLighting.frag" beforeDir="false" afterPath="$PROJECT_DIR$/shaders/defferedLighting.frag" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/shaders/fragShader.frag" beforeDir="false" afterPath="$PROJECT_DIR$/shaders/fragShader.frag" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/shaders/vertexShader.vert" beforeDir="false" afterPath="$PROJECT_DIR$/shaders/vertexShader.vert" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/main.cpp" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -110,13 +102,10 @@
       <entry key="_C:/Users/satvi/CLionProjects/StitchEngine" value="3E2Gl3Q8yreVmxoFuzHaBLdVsWl" />
     </persistenceIdMap>
   </component>
-  <component name="CopilotUserSelectedChatMode">
-    <option name="chatModeId" value="Agent" />
-  </component>
   <component name="CopilotUserSelectedModel">
     <selectedModels>
-      <entry key="agent-panel" value="GPT-5.2-Codex" />
-      <entry key="chat-panel" value="GPT-5.2-Codex" />
+      <entry key="agent-panel" value="GPT-5.2" />
+      <entry key="chat-panel" value="GPT-5.2" />
     </selectedModels>
   </component>
   <component name="ExecutionTargetManager" SELECTED_TARGET="CMakeBuildProfile:Debug" />
@@ -190,6 +179,23 @@
   }
 }</component>
   <component name="RunManager" selected="CMake Application.StitchEngine">
+    <configuration default="true" type="BIBTEX_RUN_CONFIGURATION" factoryName="LaTeX configuration factory">
+      <texify-bibtex>
+        <compiler />
+        <compiler-path />
+        <compiler-arguments />
+        <envs />
+        <main-file />
+        <aux-dir />
+        <latex-distribution>PROJECT_SDK</latex-distribution>
+      </texify-bibtex>
+      <method v="2" />
+    </configuration>
+    <configuration default="true" type="CLionExternalRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true">
+      <method v="2">
+        <option name="CLION.EXTERNAL.BUILD" enabled="true" />
+      </method>
+    </configuration>
     <configuration name="StitchEngine" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="StitchEngine" TARGET_NAME="StitchEngine" CONFIG_NAME="Release" RUN_TARGET_PROJECT_NAME="StitchEngine" RUN_TARGET_NAME="StitchEngine">
       <method v="2">
         <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
@@ -248,6 +254,15 @@
         <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
       </method>
     </configuration>
+    <configuration default="true" type="EXTERNAL_TOOL_RUN_CONFIGURATION" factoryName="LaTeX configuration factory">
+      <texify-external>
+        <program>PYTHONTEX</program>
+        <main-file />
+        <work-dir />
+        <envs />
+      </texify-external>
+      <method v="2" />
+    </configuration>
     <configuration default="true" type="MAKEINDEX_RUN_CONFIGURATION" factoryName="LaTeX configuration factory">
       <texify-makeindex>
         <program>MAKEINDEX</program>
@@ -289,9 +304,7 @@
       <workItem from="1779680768679" duration="44894000" />
       <workItem from="1779815478018" duration="1310000" />
       <workItem from="1779821311959" duration="193000" />
-      <workItem from="1779895459305" duration="4325000" />
-      <workItem from="1779925779813" duration="4000" />
-      <workItem from="1779926210785" duration="439000" />
+      <workItem from="1779895459305" duration="3975000" />
     </task>
     <servers />
   </component>
