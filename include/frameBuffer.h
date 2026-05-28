@@ -1,49 +1,25 @@
 #pragma once
 #include "glad/glad.h"
 
+#include <iostream>
+#include <vector>
+
 struct FrameBuffer {
-    FrameBuffer() {
-        glCreateFramebuffers(1, &frameBufferObject);
-    }
+    FrameBuffer();
 
-    void AddColorAttachment(const unsigned int textureId) {
-        colorAttachments.push_back(GL_COLOR_ATTACHMENT0 + attachmentIndex);
-        glNamedFramebufferTexture(frameBufferObject,
-                                  GL_COLOR_ATTACHMENT0 + attachmentIndex, textureId,
-                                  0);
+    void AddColorAttachment(unsigned int textureId);
 
-        std::cout << "color attachment: " << attachmentIndex << "\n";
+    void AddDepthAttachmentRenderBuffer(unsigned int renderBufferId) const;
 
-        attachmentIndex++;
-    }
+    void AddDepthAttachmentTexture(unsigned int textureId) const;
 
-    void AddDepthAttachmentRenderBuffer(unsigned int renderBufferId) const {
-        glNamedFramebufferRenderbuffer(frameBufferObject, GL_DEPTH_ATTACHMENT,
-                                       GL_RENDERBUFFER, renderBufferId);
-    }
+    void FinalizeColorAttachments() const;
 
-    void AddDepthAttachmentTexture(const unsigned int textureId) const {
-        glNamedFramebufferTexture(frameBufferObject, GL_DEPTH_ATTACHMENT, textureId,
-                                  0);
-    }
+    unsigned int getId() const;
 
-    void FinalizeColorAttachments() const {
-        glNamedFramebufferDrawBuffers(frameBufferObject,
-                                      static_cast<GLsizei>(colorAttachments.size()),
-                                      colorAttachments.data());
-    }
+    void Validate() const;
 
-    unsigned int getId() const { return frameBufferObject; }
-
-    void Validate() const {
-        if (glCheckNamedFramebufferStatus(frameBufferObject, GL_FRAMEBUFFER) !=
-            GL_FRAMEBUFFER_COMPLETE)
-            std::cout << "Framebuffer incomplete!\n";
-    }
-
-    ~FrameBuffer() {
-        glDeleteFramebuffers(1, &frameBufferObject);
-    }
+    ~FrameBuffer();
 
 private:
     unsigned int frameBufferObject{};

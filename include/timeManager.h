@@ -1,5 +1,6 @@
 #pragma once
 #include "glad/glad.h"
+#include "GLFW/glfw3.h"
 
 struct alignas(16) TimeUniformBufferObject {
     float deltaTime = 0.0;
@@ -8,37 +9,18 @@ struct alignas(16) TimeUniformBufferObject {
     float pad2 = 0.0;
 };
 
-
 struct TimeManager {
-    TimeManager() {
-        glCreateBuffers(1, &ubo);
-        glNamedBufferData(ubo, sizeof(TimeUniformBufferObject), nullptr,GL_DYNAMIC_DRAW);
-        glBindBufferBase(GL_UNIFORM_BUFFER, 1, ubo);
-    }
+    TimeManager();
 
-    void Tick() {
-        const auto currentFrame = static_cast<float>(glfwGetTime());
-        timeUniformBufferData.deltaTime = currentFrame - lastFrame;
-        lastFrame = currentFrame;
-        timeUniformBufferData.time += timeUniformBufferData.deltaTime;
+    void Tick();
 
-        glNamedBufferSubData(ubo, 0, sizeof(TimeUniformBufferObject), &timeUniformBufferData);
-    }
+    [[nodiscard]] float GetDeltaTime() const;
 
-    [[nodiscard]] float GetDeltaTime() const {
-        return timeUniformBufferData.deltaTime;
-    }
-
-    [[nodiscard]] float GetCurrentTime() const {
-        return timeUniformBufferData.time;
-    }
-
+    [[nodiscard]] float GetCurrentTime() const;
 
     TimeUniformBufferObject timeUniformBufferData{};
     float lastFrame = 0.0f;
     unsigned int ubo{};
 
-    ~TimeManager() {
-        glDeleteBuffers(1, &ubo);
-    }
+    ~TimeManager();
 };
