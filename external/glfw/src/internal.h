@@ -807,22 +807,22 @@ struct _GLFWlibrary
         EGLint          major, minor;
         GLFWbool        prefix;
 
-        GLFWbool        KHR_create_context;
-        GLFWbool        KHR_create_context_no_error;
-        GLFWbool        KHR_gl_colorspace;
-        GLFWbool        KHR_get_all_proc_addresses;
-        GLFWbool        KHR_context_flush_control;
-        GLFWbool        EXT_client_extensions;
-        GLFWbool        EXT_platform_base;
-        GLFWbool        EXT_platform_x11;
-        GLFWbool        EXT_platform_wayland;
-        GLFWbool        EXT_present_opaque;
-        GLFWbool        ANGLE_platform_angle;
-        GLFWbool        ANGLE_platform_angle_opengl;
-        GLFWbool        ANGLE_platform_angle_d3d;
-        GLFWbool        ANGLE_platform_angle_vulkan;
-        GLFWbool        ANGLE_platform_angle_metal;
-        GLFWbool        MESA_platform_surfaceless;
+        bool            KHR_create_context;
+        bool            KHR_create_context_no_error;
+        bool            KHR_gl_colorspace;
+        bool            KHR_get_all_proc_addresses;
+        bool            KHR_context_flush_control;
+        bool            EXT_client_extensions;
+        bool            EXT_platform_base;
+        bool            EXT_platform_x11;
+        bool            EXT_platform_wayland;
+        bool            EXT_present_opaque;
+        bool            ANGLE_platform_angle;
+        bool            ANGLE_platform_angle_opengl;
+        bool            ANGLE_platform_angle_d3d;
+        bool            ANGLE_platform_angle_vulkan;
+        bool            ANGLE_platform_angle_metal;
+        bool            MESA_platform_surfaceless;
 
         void*           handle;
 
@@ -866,14 +866,14 @@ struct _GLFWlibrary
         void*           handle;
         char*           extensions[2];
         PFN_vkGetInstanceProcAddr GetInstanceProcAddr;
-        GLFWbool        KHR_surface;
-        GLFWbool        KHR_win32_surface;
-        GLFWbool        MVK_macos_surface;
-        GLFWbool        EXT_metal_surface;
-        GLFWbool        KHR_xlib_surface;
-        GLFWbool        KHR_xcb_surface;
-        GLFWbool        KHR_wayland_surface;
-        GLFWbool        EXT_headless_surface;
+        bool            KHR_surface;
+        bool            KHR_win32_surface;
+        bool            MVK_macos_surface;
+        bool            EXT_metal_surface;
+        bool            KHR_xlib_surface;
+        bool            KHR_xcb_surface;
+        bool            KHR_wayland_surface;
+        bool            EXT_headless_surface;
     } vk;
 
     struct {

@@ -244,10 +244,7 @@ static void libdecorReadyCallback(void* userData,
                                   uint32_t time)
 {
     _glfw.wl.libdecor.ready = GLFW_TRUE;
-
-    assert(_glfw.wl.libdecor.callback == callback);
-    wl_callback_destroy(_glfw.wl.libdecor.callback);
-    _glfw.wl.libdecor.callback = NULL;
+    wl_callback_destroy(callback);
 }
 
 static const struct wl_callback_listener libdecorReadyListener =
@@ -881,10 +878,8 @@ int _glfwInitWayland(void)
             libdecor_dispatch(_glfw.wl.libdecor.context, 0);
 
             // Create sync point to "know" when libdecor is ready for use
-            _glfw.wl.libdecor.callback = wl_display_sync(_glfw.wl.display);
-            wl_callback_add_listener(_glfw.wl.libdecor.callback,
-                                     &libdecorReadyListener,
-                                     NULL);
+            struct wl_callback* callback = wl_display_sync(_glfw.wl.display);
+            wl_callback_add_listener(callback, &libdecorReadyListener, NULL);
         }
     }
 

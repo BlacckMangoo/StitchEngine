@@ -1,12 +1,23 @@
 #include "window.h"
 #include <iostream>
 
+
+void glfw_error_callback(int error, const char* description)
+{
+    std::cerr << "GLFW Error " << error
+              << ": " << description << '\n';
+}
+
 Window::Window(const int width, const int height, const char *title)
     : width_(width), height_(height) {
+
+    glfwSetErrorCallback(glfw_error_callback);
+    
     if (!glfwInit()) {
         std::cerr << "Failed to initialize GLFW!" << std::endl;
         return;
     }
+
 
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);

@@ -163,21 +163,21 @@ GLFWbool _glfwInitVulkan(int mode)
     for (i = 0;  i < count;  i++)
     {
         if (strcmp(ep[i].extensionName, "VK_KHR_surface") == 0)
-            _glfw.vk.KHR_surface = GLFW_TRUE;
+            _glfw.vk.KHR_surface = true;
         else if (strcmp(ep[i].extensionName, "VK_KHR_win32_surface") == 0)
-            _glfw.vk.KHR_win32_surface = GLFW_TRUE;
+            _glfw.vk.KHR_win32_surface = true;
         else if (strcmp(ep[i].extensionName, "VK_MVK_macos_surface") == 0)
-            _glfw.vk.MVK_macos_surface = GLFW_TRUE;
+            _glfw.vk.MVK_macos_surface = true;
         else if (strcmp(ep[i].extensionName, "VK_EXT_metal_surface") == 0)
-            _glfw.vk.EXT_metal_surface = GLFW_TRUE;
+            _glfw.vk.EXT_metal_surface = true;
         else if (strcmp(ep[i].extensionName, "VK_KHR_xlib_surface") == 0)
-            _glfw.vk.KHR_xlib_surface = GLFW_TRUE;
+            _glfw.vk.KHR_xlib_surface = true;
         else if (strcmp(ep[i].extensionName, "VK_KHR_xcb_surface") == 0)
-            _glfw.vk.KHR_xcb_surface = GLFW_TRUE;
+            _glfw.vk.KHR_xcb_surface = true;
         else if (strcmp(ep[i].extensionName, "VK_KHR_wayland_surface") == 0)
-            _glfw.vk.KHR_wayland_surface = GLFW_TRUE;
+            _glfw.vk.KHR_wayland_surface = true;
         else if (strcmp(ep[i].extensionName, "VK_EXT_headless_surface") == 0)
-            _glfw.vk.EXT_headless_surface = GLFW_TRUE;
+            _glfw.vk.EXT_headless_surface = true;
     }
 
     _glfw_free(ep);

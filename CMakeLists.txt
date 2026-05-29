@@ -5,6 +5,7 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+
 add_subdirectory(./external/glfw)
 add_subdirectory(./external/glm)
 add_subdirectory(./external/fastgltf)
@@ -31,11 +32,15 @@ target_include_directories(imgui PUBLIC
         external/imgui/backends
 )
 
+target_compile_definitions(imgui PUBLIC GLFW_INCLUDE_NONE)
+
 target_link_libraries(imgui PUBLIC glfw)
 
 file(GLOB_RECURSE CPP_SOURCES src/*.cpp)
 add_executable(StitchEngine ${CPP_SOURCES} )
 
 target_include_directories(StitchEngine PRIVATE ${CMAKE_SOURCE_DIR}/include)
+
+target_compile_definitions(StitchEngine PRIVATE GLFW_INCLUDE_NONE)
 
 target_link_libraries(StitchEngine glfw glm imgui glad fastgltf)

@@ -1,4 +1,5 @@
 #pragma once
+
 #include "resourceManager.h"
 
 struct DirectionalLight;

@@ -57,6 +57,7 @@ video tutorials.
  - Jason Daly
  - danhambleton
  - Jarrod Davis
+ - Aaron Day
  - decce
  - Olivier Delannoy
  - Paul R. Deppe

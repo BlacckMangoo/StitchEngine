@@ -203,21 +203,34 @@ struct ResourceManager {
     void LoadGLTFMesh(const std::filesystem::path &path,
                       const std::string &name) {
         fastgltf::Parser parser;
+
         auto gltfData = fastgltf::GltfDataBuffer::FromPath(path);
+
         if (gltfData.error() != fastgltf::Error::None) {
             std::cerr << "Failed to load GLTF file\n";
+            std::cerr << "Path: " << std::filesystem::absolute(path) << '\n';
+            std::cerr << "Error code: "
+                    << static_cast<int>(gltfData.error())
+                    << '\n';
+            return;
         }
-        auto asset = parser.loadGltf(gltfData.get(),
-                                     std::filesystem::path(path).parent_path(),
-                                     fastgltf::Options::LoadExternalBuffers |
-                                     fastgltf::Options::GenerateMeshIndices);
+
+        auto asset = parser.loadGltf(
+            gltfData.get(),
+            path.parent_path(),
+            fastgltf::Options::LoadExternalBuffers |
+            fastgltf::Options::GenerateMeshIndices
+        );
+
         if (asset.error() != fastgltf::Error::None) {
             std::cerr << "Failed to parse GLTF file\n";
+            std::cerr << "Error code: "
+                    << static_cast<int>(asset.error())
+                    << '\n';
+            return;
         }
-        auto &gltfAsset = asset.get();
-        if (gltfAsset.meshes.empty()) {
-            std::cerr << "No meshes found in GLTF file\n";
-        }
+
+        auto& gltfAsset = asset.get();
         // name
         for (const auto &m: gltfAsset.meshes) {
             std::cout << m.name << "loaded " << "\n";
