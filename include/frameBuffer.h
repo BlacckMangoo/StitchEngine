@@ -32,6 +32,12 @@ struct FrameBuffer
                                   0);
     }
 
+    void FinalizeDepthOnly() const
+    {
+        glNamedFramebufferDrawBuffer(frameBufferObject, GL_NONE);
+        glNamedFramebufferReadBuffer(frameBufferObject, GL_NONE);
+    }
+
     void FinalizeColorAttachments() const
     {
         glNamedFramebufferDrawBuffers(frameBufferObject,

@@ -46,7 +46,7 @@ inline glm::mat4 CalculateLightSpaceMatrix(const DirectionalLight &dirLight)
                                       glm::vec3(0.0f),   // Look at the origin
                                       up);               // Up vector
 
-    float orthoSize = 10.0f;
+    float orthoSize = 20.0f;
     glm::mat4 lightProjection = glm::ortho(-orthoSize, orthoSize, -orthoSize, orthoSize, 1.0f, 20.0f);
 
     return lightProjection * lightView;
@@ -121,8 +121,9 @@ int main()
     resourceManager.LoadSampler(rtSamplerDesc, "frameBufferSampler");
 
     FrameBuffer shadowMapBuffer;
-    auto shadowMapTex = resourceManager.CreateRenderTarget(window.width(), window.height(), depthDesc, "shadowMapTexture");
+    auto shadowMapTex = resourceManager.CreateRenderTarget(2048, 2048, depthDesc, "shadowMapTexture");
     shadowMapBuffer.AddDepthAttachmentTexture(resourceManager.ResolveTexture(shadowMapTex)->id);
+    shadowMapBuffer.FinalizeDepthOnly();
     shadowMapBuffer.Validate();
 
     FrameBuffer gBuffer;
@@ -255,7 +256,7 @@ int main()
     SponzaNode->AddComponent(TransformComponent{
         Transform{
             .position = {0.0f, 0.0f, 0.0f},
-            .scale = {0.2f, 0.2f, 0.2f},
+            .scale = {0.02f, 0.02f, 0.02f},
             .rotation = glm::quat(glm::vec3(0.0f))}});
 
     SponzaNode->name = "SponzaNode";
@@ -304,8 +305,8 @@ int main()
 
     RenderPass shadowMapPass{
         .framebuffer = shadowMapBuffer.getId(),
-        .size = {window.width(), window.height()},
-        .clearColor = true,
+        .size = {2048, 2048},
+        .clearColor = false,
         .clearDepth = true,
         .clearColorValue = {1.0f, 1.0f, 1.0f, 1.0f},
         .depthTest = true,
@@ -401,19 +402,14 @@ int main()
             }
         }
 
-        deferredLightingRenderQueue.push_back({resourceManager.GetMaterial("deferredLightingMat"),
-                                               glm::mat4(1.0f), resourceManager.GetMesh("QuadForFullScreen")});
-
-        fullScreenRenderQueue.push_back({fullScreenMat,
-                                         glm::mat4(1.0f), resourceManager.GetMesh("QuadForFullScreen")});
-
+        deferredLightingRenderQueue.push_back({resourceManager.GetMaterial("deferredLightingMat"), glm::mat4(1.0f), resourceManager.GetMesh("QuadForFullScreen")});
+        fullScreenRenderQueue.push_back({fullScreenMat, glm::mat4(1.0f), resourceManager.GetMesh("QuadForFullScreen")});
         timeManager.Tick();
 
-        auto shadowMapUniforms = resourceManager.ResolveMaterial(shadowMapMat)->uniforms;
+        auto &shadowMapUniforms = resourceManager.ResolveMaterial(shadowMapMat)->uniforms;
         shadowMapUniforms["MLP"] = CalculateLightSpaceMatrix(dirLight);
 
         BuildShadowMapRenderQueue(&scene_graph->rootNode, shadowMapRenderQueue, resourceManager, shadowMapMat);
-
         ExecuteRenderPass(shadowMapPass);
         Render(shadowMapRenderQueue, resourceManager);
         shadowMapRenderQueue.clear();
@@ -433,8 +429,7 @@ int main()
 
             if (transformComp && pointLightComp)
             {
-                auto &uniforms =
-                    resourceManager.ResolveMaterial(litSceneMat)->uniforms;
+                auto &uniforms = resourceManager.ResolveMaterial(litSceneMat)->uniforms;
 
                 uniforms["pointLights[" + std::to_string(lightIndex) + "].color"] = pointLightComp->light.color;
                 uniforms["pointLights[" + std::to_string(lightIndex) + "].intensity"] = pointLightComp->light.intensity;
@@ -449,6 +444,7 @@ int main()
         uniforms["pointLightCount"] = lightIndex;
         uniforms["DirectionalLightColor"] = dirLight.color;
         uniforms["DirectionalLightDirection"] = glm::normalize(dirLight.direction);
+        uniforms["MLP"] = CalculateLightSpaceMatrix(dirLight);
 
         ExecuteRenderPass(LightingPass);
         Render(deferredLightingRenderQueue, resourceManager);
