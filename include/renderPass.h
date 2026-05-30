@@ -3,15 +3,16 @@
 
 struct DirectionalLight;
 
-struct RenderObject {
+struct RenderObject
+{
     MaterialHandle material;
     glm::mat4 transform;
     MeshHandle mesh;
-    int primIndex ;
+    int primIndex;
 };
 
-
-struct RenderPass {
+struct RenderPass
+{
     GLuint framebuffer; // 0 for default framebuffer
 
     glm::ivec2 size; // set in viewport call before rendering
@@ -26,13 +27,17 @@ struct RenderPass {
     bool cullFace;
 };
 
-inline void Render(const std::vector<RenderObject> &renderObjects, const ResourceManager& rm ) {
-    for (const auto &[material, transform, mesh,i]: renderObjects) {
+inline void Render(const std::vector<RenderObject> &renderObjects, const ResourceManager &rm)
+{
+    for (const auto &[material, transform, mesh, i] : renderObjects)
+    {
         rm.ResolveShader(rm.ResolveMaterial(material)->shader)->Bind();
 
-        for (auto &[name, value]: rm.ResolveMaterial(material)->uniforms) {
+        for (auto &[name, value] : rm.ResolveMaterial(material)->uniforms)
+        {
             std::visit(
-                [&]<typename T0>(T0 &&v) {
+                [&]<typename T0>(T0 &&v)
+                {
                     using T = std::decay_t<T0>;
 
                     if constexpr (std::is_same_v<T, int>)
@@ -42,13 +47,13 @@ inline void Render(const std::vector<RenderObject> &renderObjects, const Resourc
                         rm.ResolveShader(rm.ResolveMaterial(material)->shader)->SetFloat(name, v);
 
                     else if constexpr (std::is_same_v<T, glm::vec2>)
-                       rm.ResolveShader(rm.ResolveMaterial(material)->shader)->SetVec2(name, v);
+                        rm.ResolveShader(rm.ResolveMaterial(material)->shader)->SetVec2(name, v);
 
                     else if constexpr (std::is_same_v<T, glm::vec3>)
                         rm.ResolveShader(rm.ResolveMaterial(material)->shader)->SetVec3(name, v);
 
                     else if constexpr (std::is_same_v<T, glm::vec4>)
-                       rm.ResolveShader(rm.ResolveMaterial(material)->shader)->SetVec4(name, v);
+                        rm.ResolveShader(rm.ResolveMaterial(material)->shader)->SetVec4(name, v);
 
                     else if constexpr (std::is_same_v<T, glm::mat4>)
                         rm.ResolveShader(rm.ResolveMaterial(material)->shader)->SetMat4(name, v);
@@ -58,7 +63,8 @@ inline void Render(const std::vector<RenderObject> &renderObjects, const Resourc
 
         int textureUnit = 0;
 
-        for (const auto &[name, texture]: rm.ResolveMaterial(material)->textures) {
+        for (const auto &[name, texture] : rm.ResolveMaterial(material)->textures)
+        {
             rm.ResolveTexture(texture.first)->BindTo(textureUnit);
             rm.ResolveSampler(texture.second)->BindTo(textureUnit);
             rm.ResolveShader(rm.ResolveMaterial(material)->shader)->SetInt(name, textureUnit);
@@ -70,34 +76,46 @@ inline void Render(const std::vector<RenderObject> &renderObjects, const Resourc
     }
 }
 
-inline void ExecuteRenderPass(const RenderPass &pass) {
+inline void ExecuteRenderPass(const RenderPass &pass)
+{
     glBindFramebuffer(GL_FRAMEBUFFER, pass.framebuffer);
     glViewport(0, 0, pass.size.x, pass.size.y);
 
-    if (pass.clearColor) {
+    if (pass.clearColor)
+    {
         glClearColor(pass.clearColorValue.r, pass.clearColorValue.g,
                      pass.clearColorValue.b, pass.clearColorValue.a);
         glClear(GL_COLOR_BUFFER_BIT);
     }
-    if (pass.clearDepth) {
+    if (pass.clearDepth)
+    {
         glClear(GL_DEPTH_BUFFER_BIT);
     };
-    if (pass.cullFace) {
+    if (pass.cullFace)
+    {
         glEnable(GL_CULL_FACE);
         glCullFace(GL_BACK);
-    } else {
+    }
+    else
+    {
         glDisable(GL_CULL_FACE);
     };
-    if (pass.depthTest) {
+    if (pass.depthTest)
+    {
         glEnable(GL_DEPTH_TEST);
-    } else {
+    }
+    else
+    {
         glDisable(GL_DEPTH_TEST);
     }
 
-    if (pass.blending) {
+    if (pass.blending)
+    {
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    } else {
+    }
+    else
+    {
         glDisable(GL_BLEND);
     }
 };

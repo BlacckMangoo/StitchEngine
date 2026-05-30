@@ -13,8 +13,6 @@ add_library(glad external/glad/src/glad.c )
 target_include_directories(glad PUBLIC external/glad/include)
 
 
-file(COPY assets shaders DESTINATION ${CMAKE_BINARY_DIR})
-
 add_library(imgui
         external/imgui/imgui.cpp
         external/imgui/imgui_draw.cpp

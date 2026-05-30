@@ -1,7 +1,8 @@
 #pragma once
 #include <GLFW/glfw3.h>
 
-class Window {
+class Window
+{
 public:
     Window(int width, int height, const char *title);
 
@@ -19,11 +20,13 @@ public:
     [[nodiscard]] int width() const { return width_; }
     [[nodiscard]] int height() const { return height_; }
 
-    [[nodiscard]] bool shouldClose() const {
+    [[nodiscard]] bool shouldClose() const
+    {
         return glfwWindowShouldClose(window_);
     }
 
-    [[nodiscard]] float aspectRatio() const {
+    [[nodiscard]] float aspectRatio() const
+    {
         return static_cast<float>(width_) / height_;
     }
 

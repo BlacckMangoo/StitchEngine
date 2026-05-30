@@ -14,27 +14,32 @@
 
 using ID = uint64_t;
 
-struct IdGenerator {
+struct IdGenerator
+{
     static inline std::atomic<uint64_t> cur = 1;
 
-    static ID GenerateId() {
+    static ID GenerateId()
+    {
         return cur++;
     }
 };
 
-
 inline std::vector<float>
 GetInterleavedPosTex(const fastgltf::Asset &asset,
-                     const fastgltf::Primitive &primitive) {
+                     const fastgltf::Primitive &primitive)
+{
     std::vector<float> vertices;
 
     auto *positionIt = primitive.findAttribute("POSITION");
     auto *normalIt = primitive.findAttribute("NORMAL");
     auto *texCoord = primitive.findAttribute("TEXCOORD_0");
 
-    if (positionIt == primitive.attributes.end()) return vertices;
-    if (texCoord == primitive.attributes.end()) return vertices;
-    if (normalIt == primitive.attributes.end()) return vertices;
+    if (positionIt == primitive.attributes.end())
+        return vertices;
+    if (texCoord == primitive.attributes.end())
+        return vertices;
+    if (normalIt == primitive.attributes.end())
+        return vertices;
 
     auto &posAccessor = asset.accessors[positionIt->accessorIndex];
     auto &normalAccessor = asset.accessors[normalIt->accessorIndex];
@@ -44,35 +49,37 @@ GetInterleavedPosTex(const fastgltf::Asset &asset,
     vertices.resize(vertexCount * 8);
 
     fastgltf::iterateAccessorWithIndex<fastgltf::math::fvec3>(
-        asset, posAccessor, [&](fastgltf::math::fvec3 pos, std::size_t idx) {
+        asset, posAccessor, [&](fastgltf::math::fvec3 pos, std::size_t idx)
+        {
             const size_t base = idx * 8;
             vertices[base + 0] = pos.x();
             vertices[base + 1] = pos.y();
-            vertices[base + 2] = pos.z();
-        });
+            vertices[base + 2] = pos.z(); });
 
     fastgltf::iterateAccessorWithIndex<fastgltf::math::fvec3>(
-        asset, normalAccessor, [&](fastgltf::math::fvec3 normal, std::size_t idx) {
+        asset, normalAccessor, [&](fastgltf::math::fvec3 normal, std::size_t idx)
+        {
             const size_t base = idx * 8;
             vertices[base + 3] = normal.x();
             vertices[base + 4] = normal.y();
-            vertices[base + 5] = normal.z();
-        });
+            vertices[base + 5] = normal.z(); });
 
     fastgltf::iterateAccessorWithIndex<fastgltf::math::fvec2>(
-        asset, texAccessor, [&](fastgltf::math::fvec2 uv, std::size_t idx) {
+        asset, texAccessor, [&](fastgltf::math::fvec2 uv, std::size_t idx)
+        {
             const size_t base = idx * 8;
             vertices[base + 6] = uv.x();
-            vertices[base + 7] = uv.y();
-        });
+            vertices[base + 7] = uv.y(); });
 
     return vertices;
 }
 
 inline std::vector<uint32_t>
-GetIndices(const fastgltf::Asset &asset, const fastgltf::Primitive &primitive) {
+GetIndices(const fastgltf::Asset &asset, const fastgltf::Primitive &primitive)
+{
     std::vector<uint32_t> indices;
-    if (!primitive.indicesAccessor.has_value()) return indices;
+    if (!primitive.indicesAccessor.has_value())
+        return indices;
 
     auto &accessor = asset.accessors[primitive.indicesAccessor.value()];
     indices.resize(accessor.count);
@@ -80,12 +87,13 @@ GetIndices(const fastgltf::Asset &asset, const fastgltf::Primitive &primitive) {
     return indices;
 }
 
-
-struct ResourceManager {
+struct ResourceManager
+{
     // Returns an invalid handle if the shader couldn't be created.
     ShaderHandle LoadShader(const std::string &vertPath,
                             const std::string &fragPath,
-                            const std::string &name) {
+                            const std::string &name)
+    {
         // Return existing handle if already loaded.
         if (auto it = shaderNames.find(name); it != shaderNames.end())
             return it->second;
@@ -94,18 +102,20 @@ struct ResourceManager {
         shaders.push_back(std::make_shared<Shader>(vertPath, fragPath));
         shaderNames[name] = handle;
 
+        std::error_code ec;
         shaderFilesToWatch.insert({vertPath, name});
-        shaderFileWriteTimes[vertPath] = std::filesystem::last_write_time(vertPath);
+        shaderFileWriteTimes[vertPath] = std::filesystem::last_write_time(vertPath, ec);
         shaderFilesToWatch.insert({fragPath, name});
-        shaderFileWriteTimes[fragPath] = std::filesystem::last_write_time(fragPath);
+        shaderFileWriteTimes[fragPath] = std::filesystem::last_write_time(fragPath, ec);
 
         std::cout << "Loaded shader: " << name
-                << " (id=" << handle.id << ")\n";
+                  << " (id=" << handle.id << ")\n";
         return handle;
     }
 
     ShaderHandle LoadShader(const std::string &vertPath,
-                            const std::string &fragPath) {
+                            const std::string &fragPath)
+    {
         auto name = std::to_string(IdGenerator::GenerateId());
         if (auto it = shaderNames.find(name); it != shaderNames.end())
             return it->second;
@@ -114,32 +124,35 @@ struct ResourceManager {
         shaders.push_back(std::make_shared<Shader>(vertPath, fragPath));
         shaderNames[name] = handle;
 
+        std::error_code ec;
         shaderFilesToWatch.insert({vertPath, name});
-        shaderFileWriteTimes[vertPath] = std::filesystem::last_write_time(vertPath);
+        shaderFileWriteTimes[vertPath] = std::filesystem::last_write_time(vertPath, ec);
         shaderFilesToWatch.insert({fragPath, name});
-        shaderFileWriteTimes[fragPath] = std::filesystem::last_write_time(fragPath);
+        shaderFileWriteTimes[fragPath] = std::filesystem::last_write_time(fragPath, ec);
 
         std::cout << "Loaded shader: " << name
-                << " (id=" << handle.id << ")\n";
+                  << " (id=" << handle.id << ")\n";
         return handle;
     }
 
-    ShaderHandle GetShader(const std::string &name) const {
+    ShaderHandle GetShader(const std::string &name) const
+    {
         if (auto it = shaderNames.find(name); it != shaderNames.end())
             return it->second;
         return {};
     }
 
-    Shader *ResolveShader(const ShaderHandle handle) const {
+    Shader *ResolveShader(const ShaderHandle handle) const
+    {
         if (handle.IsValid() && handle.id < shaders.size())
             return shaders[handle.id].get();
         return nullptr;
     }
 
-
     TextureHandle LoadTexture(const std::string &path,
                               const TextureDescription &desc,
-                              const std::string &name) {
+                              const std::string &name)
+    {
         if (auto it = textureNames.find(name); it != textureNames.end())
             return it->second;
 
@@ -151,7 +164,8 @@ struct ResourceManager {
     }
 
     TextureHandle LoadTexture(const std::string &path,
-                              const TextureDescription &desc) {
+                              const TextureDescription &desc)
+    {
         auto name = std::to_string(IdGenerator::GenerateId());
         if (auto it = textureNames.find(name); it != textureNames.end())
             return it->second;
@@ -163,8 +177,8 @@ struct ResourceManager {
         return handle;
     }
 
-
-    TextureHandle CreateRenderTarget(int width, int height, const TextureDescription &desc, const std::string &name) {
+    TextureHandle CreateRenderTarget(int width, int height, const TextureDescription &desc, const std::string &name)
+    {
         if (const auto it = textureNames.find(name); it != textureNames.end())
             return it->second;
 
@@ -174,21 +188,23 @@ struct ResourceManager {
         return handle;
     }
 
-    TextureHandle GetTexture(const std::string &name) const {
+    TextureHandle GetTexture(const std::string &name) const
+    {
         if (const auto it = textureNames.find(name); it != textureNames.end())
             return it->second;
         return {};
     }
 
-    Texture *ResolveTexture(const TextureHandle handle) const {
+    Texture *ResolveTexture(const TextureHandle handle) const
+    {
         if (handle.IsValid() && handle.id < textures.size())
             return textures[handle.id].get();
         return nullptr;
     }
 
-
     SamplerHandle LoadSampler(const SamplerDescription &desc,
-                              const std::string &name) {
+                              const std::string &name)
+    {
         if (auto it = samplerNames.find(name); it != samplerNames.end())
             return it->second;
 
@@ -198,7 +214,8 @@ struct ResourceManager {
         return handle;
     }
 
-    SamplerHandle LoadSampler(const SamplerDescription &desc) {
+    SamplerHandle LoadSampler(const SamplerDescription &desc)
+    {
         auto name = std::to_string(IdGenerator::GenerateId());
 
         if (auto it = samplerNames.find(name); it != samplerNames.end())
@@ -210,47 +227,51 @@ struct ResourceManager {
         return handle;
     }
 
-    SamplerHandle GetSampler(const std::string &name) const {
+    SamplerHandle GetSampler(const std::string &name) const
+    {
         if (auto it = samplerNames.find(name); it != samplerNames.end())
             return it->second;
         return {};
     }
 
-    Sampler *ResolveSampler(SamplerHandle handle) const {
+    Sampler *ResolveSampler(SamplerHandle handle) const
+    {
         if (handle.IsValid() && handle.id < samplers.size())
             return samplers[handle.id].get();
         return nullptr;
     }
-
 
     // uniforms  — e.g. { "albedoColor", glm::vec3(1,0,0) }
     // textures  — e.g. { "albedoMap", { "myTex", "mySampler" } }
 
     MaterialHandle LoadMaterial(ShaderHandle shader,
                                 const std::unordered_map<std::string, UniformValue> &uniforms,
-                                const std::unordered_map<std::string, std::pair<std::string, std::string> > &
-                                textureBindings,
-                                const std::string &name) {
+                                const std::unordered_map<std::string, std::pair<std::string, std::string>> &
+                                    textureBindings,
+                                const std::string &name)
+    {
         if (auto it = materialNames.find(name); it != materialNames.end())
             return it->second;
 
-
         auto material = std::make_shared<Material>();
         material->shader = shader;
-        for (const auto &[uniformName, uniformValue]: uniforms)
+        for (const auto &[uniformName, uniformValue] : uniforms)
             material->uniforms[uniformName] = uniformValue;
 
-        for (const auto &[uniformName, texInfo]: textureBindings) {
+        for (const auto &[uniformName, texInfo] : textureBindings)
+        {
             const auto &[texName, samplerName] = texInfo;
 
             Texture *texture = ResolveTexture(GetTexture(texName));
             Sampler *sampler = ResolveSampler(GetSampler(samplerName));
 
-            if (!texture) {
+            if (!texture)
+            {
                 std::cerr << "LoadMaterial: texture not found: " << texName << "\n";
                 continue;
             }
-            if (!sampler) {
+            if (!sampler)
+            {
                 std::cerr << "LoadMaterial: sampler not found: " << samplerName << "\n";
                 continue;
             }
@@ -265,33 +286,35 @@ struct ResourceManager {
         return handle;
     }
 
-
     MaterialHandle LoadMaterial(ShaderHandle shader,
                                 const std::unordered_map<std::string, UniformValue> &uniforms,
-                                const std::unordered_map<std::string, std::pair<std::string, std::string> > &
-                                textureBindings) {
+                                const std::unordered_map<std::string, std::pair<std::string, std::string>> &
+                                    textureBindings)
+    {
         auto name = std::to_string(IdGenerator::GenerateId());
 
         if (auto it = materialNames.find(name); it != materialNames.end())
             return it->second;
 
-
         auto material = std::make_shared<Material>();
         material->shader = shader;
-        for (const auto &[uniformName, uniformValue]: uniforms)
+        for (const auto &[uniformName, uniformValue] : uniforms)
             material->uniforms[uniformName] = uniformValue;
 
-        for (const auto &[uniformName, texInfo]: textureBindings) {
+        for (const auto &[uniformName, texInfo] : textureBindings)
+        {
             const auto &[texName, samplerName] = texInfo;
 
             Texture *texture = ResolveTexture(GetTexture(texName));
             Sampler *sampler = ResolveSampler(GetSampler(samplerName));
 
-            if (!texture) {
+            if (!texture)
+            {
                 std::cerr << "LoadMaterial: texture not found: " << texName << "\n";
                 continue;
             }
-            if (!sampler) {
+            if (!sampler)
+            {
                 std::cerr << "LoadMaterial: sampler not found: " << samplerName << "\n";
                 continue;
             }
@@ -306,21 +329,23 @@ struct ResourceManager {
         return handle;
     }
 
-    MaterialHandle GetMaterial(const std::string &name) const {
+    MaterialHandle GetMaterial(const std::string &name) const
+    {
         if (auto it = materialNames.find(name); it != materialNames.end())
             return it->second;
         return {};
     }
 
-    Material *ResolveMaterial(MaterialHandle handle) const {
+    Material *ResolveMaterial(MaterialHandle handle) const
+    {
         if (handle.IsValid() && handle.id < materials.size())
             return materials[handle.id].get();
         return nullptr;
     }
 
-
     MeshHandle LoadMesh(std::vector<GlPrimitive> &&primitives,
-                        const std::string &name) {
+                        const std::string &name)
+    {
         if (const auto it = meshNames.find(name); it != meshNames.end())
             return it->second;
 
@@ -330,8 +355,8 @@ struct ResourceManager {
         return handle;
     }
 
-
-    MeshHandle LoadMesh(std::vector<GlPrimitive> &&primitives) {
+    MeshHandle LoadMesh(std::vector<GlPrimitive> &&primitives)
+    {
         auto name = std::to_string(IdGenerator::GenerateId());
         if (const auto it = meshNames.find(name); it != meshNames.end())
             return it->second;
@@ -341,16 +366,17 @@ struct ResourceManager {
         meshNames[name] = handle;
         return handle;
     }
-
 
     MeshHandle LoadGLTFMesh(const std::filesystem::path &path,
-                            const std::string &name) {
+                            const std::string &name)
+    {
         if (auto it = meshNames.find(name); it != meshNames.end())
             return it->second;
 
         fastgltf::Parser parser;
         auto gltfData = fastgltf::GltfDataBuffer::FromPath(path);
-        if (gltfData.error() != fastgltf::Error::None) {
+        if (gltfData.error() != fastgltf::Error::None)
+        {
             std::cerr << "LoadGLTFMesh: failed to load file: " << path << "\n";
             return {};
         }
@@ -358,43 +384,49 @@ struct ResourceManager {
         auto asset = parser.loadGltf(
             gltfData.get(), path.parent_path(),
             fastgltf::Options::LoadExternalBuffers |
-            fastgltf::Options::GenerateMeshIndices);
+                fastgltf::Options::GenerateMeshIndices);
 
-        if (asset.error() != fastgltf::Error::None) {
+        if (asset.error() != fastgltf::Error::None)
+        {
             std::cerr << "LoadGLTFMesh: failed to parse GLTF: " << path << "\n";
             return {};
         }
 
         auto &gltfAsset = asset.get();
-        if (gltfAsset.meshes.empty()) {
+        if (gltfAsset.meshes.empty())
+        {
             std::cerr << "LoadGLTFMesh: no meshes in file: " << path << "\n";
             return {};
         }
 
         MeshHandle firstHandle{};
-        for (size_t i = 0; i < gltfAsset.meshes.size(); ++i) {
+        for (size_t i = 0; i < gltfAsset.meshes.size(); ++i)
+        {
             const auto &m = gltfAsset.meshes[i];
             std::cout << m.name << " loaded (" << m.primitives.size() << " primitives)\n";
 
             auto primitives = LoadPrimitivesFromGltf(m, gltfAsset, path);
-            if (primitives.empty()) continue;
-
+            if (primitives.empty())
+                continue;
 
             const std::string &key = (i == 0) ? name : std::string(m.name);
 
-            if (meshNames.contains(key)) continue;
+            if (meshNames.contains(key))
+                continue;
 
             MeshHandle handle{static_cast<uint32_t>(meshes.size())};
             meshes.push_back(std::make_shared<Mesh>(m.name, std::move(primitives)));
             meshNames[key] = handle;
 
-            if (i == 0) firstHandle = handle;
+            if (i == 0)
+                firstHandle = handle;
         }
 
         return firstHandle;
     }
 
-    MeshHandle LoadGLTFMesh(const std::filesystem::path &path) {
+    MeshHandle LoadGLTFMesh(const std::filesystem::path &path)
+    {
         auto name = std::to_string(IdGenerator::GenerateId());
 
         if (auto it = meshNames.find(name); it != meshNames.end())
@@ -402,7 +434,8 @@ struct ResourceManager {
 
         fastgltf::Parser parser;
         auto gltfData = fastgltf::GltfDataBuffer::FromPath(path);
-        if (gltfData.error() != fastgltf::Error::None) {
+        if (gltfData.error() != fastgltf::Error::None)
+        {
             std::cerr << "LoadGLTFMesh: failed to load file: " << path << "\n";
             return {};
         }
@@ -410,68 +443,82 @@ struct ResourceManager {
         auto asset = parser.loadGltf(
             gltfData.get(), path.parent_path(),
             fastgltf::Options::LoadExternalBuffers |
-            fastgltf::Options::GenerateMeshIndices);
+                fastgltf::Options::GenerateMeshIndices);
 
-        if (asset.error() != fastgltf::Error::None) {
+        if (asset.error() != fastgltf::Error::None)
+        {
             std::cerr << "LoadGLTFMesh: failed to parse GLTF: " << path << "\n";
             return {};
         }
 
         auto &gltfAsset = asset.get();
-        if (gltfAsset.meshes.empty()) {
+        if (gltfAsset.meshes.empty())
+        {
             std::cerr << "LoadGLTFMesh: no meshes in file: " << path << "\n";
             return {};
         }
 
         MeshHandle firstHandle{};
-        for (size_t i = 0; i < gltfAsset.meshes.size(); ++i) {
+        for (size_t i = 0; i < gltfAsset.meshes.size(); ++i)
+        {
             const auto &m = gltfAsset.meshes[i];
             std::cout << m.name << " loaded (" << m.primitives.size() << " primitives)\n";
 
             auto primitives = LoadPrimitivesFromGltf(m, gltfAsset, path);
-            if (primitives.empty()) continue;
-
+            if (primitives.empty())
+                continue;
 
             const std::string &key = (i == 0) ? name : std::string(m.name);
 
-            if (meshNames.contains(key)) continue;
+            if (meshNames.contains(key))
+                continue;
 
             MeshHandle handle{static_cast<uint32_t>(meshes.size())};
             meshes.push_back(std::make_shared<Mesh>(m.name, std::move(primitives)));
             meshNames[key] = handle;
 
-            if (i == 0) firstHandle = handle;
+            if (i == 0)
+                firstHandle = handle;
         }
 
         return firstHandle;
     }
 
-
-    MeshHandle GetMesh(const std::string &name) const {
+    MeshHandle GetMesh(const std::string &name) const
+    {
         if (auto it = meshNames.find(name); it != meshNames.end())
             return it->second;
         return {};
     }
 
-    Mesh *ResolveMesh(MeshHandle handle) const {
+    Mesh *ResolveMesh(MeshHandle handle) const
+    {
         if (handle.IsValid() && handle.id < meshes.size())
             return meshes[handle.id].get();
         return nullptr;
     }
 
+    void WatchPaths()
+    {
+        for (const auto &[path, shaderName] : shaderFilesToWatch)
+        {
+            std::error_code ec;
+            if (!std::filesystem::exists(path, ec))
+                continue;
 
-    void WatchPaths() {
-        for (const auto &[path, shaderName]: shaderFilesToWatch) {
-            if (!std::filesystem::exists(path)) continue;
+            auto lastWriteTime = std::filesystem::last_write_time(path, ec);
+            if (ec)
+                continue;
 
-            auto lastWriteTime = std::filesystem::last_write_time(path);
-            if (lastWriteTime == shaderFileWriteTimes[path]) continue;
+            if (lastWriteTime == shaderFileWriteTimes[path])
+                continue;
 
             shaderFileWriteTimes[path] = lastWriteTime;
             std::cout << "Shader file changed: " << path << "\n";
 
             Shader *shader = ResolveShader(GetShader(shaderName));
-            if (!shader) continue;
+            if (!shader)
+                continue;
 
             if (std::filesystem::path(path).extension() == ".vert")
                 shader->Reload(path, shader->fragmentShaderPath);
@@ -481,11 +528,11 @@ struct ResourceManager {
     }
 
 private:
-    std::vector<std::shared_ptr<Shader> > shaders;
-    std::vector<std::shared_ptr<Material> > materials;
-    std::vector<std::shared_ptr<Texture> > textures;
-    std::vector<std::shared_ptr<Mesh> > meshes;
-    std::vector<std::shared_ptr<Sampler> > samplers;
+    std::vector<std::shared_ptr<Shader>> shaders;
+    std::vector<std::shared_ptr<Material>> materials;
+    std::vector<std::shared_ptr<Texture>> textures;
+    std::vector<std::shared_ptr<Mesh>> meshes;
+    std::vector<std::shared_ptr<Sampler>> samplers;
 
     std::unordered_map<std::string, ShaderHandle> shaderNames;
     std::unordered_map<std::string, MaterialHandle> materialNames;
@@ -493,29 +540,32 @@ private:
     std::unordered_map<std::string, MeshHandle> meshNames;
     std::unordered_map<std::string, SamplerHandle> samplerNames;
 
-    std::set<std::pair<std::string, std::string> > shaderFilesToWatch;
+    std::set<std::pair<std::string, std::string>> shaderFilesToWatch;
     std::unordered_map<std::string, std::filesystem::file_time_type> shaderFileWriteTimes;
-
 
     std::vector<GlPrimitive> LoadPrimitivesFromGltf(const fastgltf::Mesh &mesh,
                                                     const fastgltf::Asset &asset,
-                                                    const std::filesystem::path &gltfPath) {
+                                                    const std::filesystem::path &gltfPath)
+    {
         std::vector<GlPrimitive> primitives;
         primitives.reserve(mesh.primitives.size());
 
-        for (const auto &prim: mesh.primitives) {
+        for (const auto &prim : mesh.primitives)
+        {
             auto vertexData = GetInterleavedPosTex(asset, prim);
-            if (vertexData.empty()) continue;
+            if (vertexData.empty())
+                continue;
 
             auto indices = GetIndices(asset, prim);
 
             GlPrimitive output{{MakeVertexStream(vertexData)}, indices, PosNormTexLayout};
-            if (prim.materialIndex.has_value()) {
+            if (prim.materialIndex.has_value())
+            {
                 const auto &material = asset.materials[prim.materialIndex.value()];
                 const auto &pbr = material.pbrData;
 
-                auto baseColorFactor = glm::vec4(pbr.baseColorFactor.x(),pbr.baseColorFactor.y(),pbr.baseColorFactor.z(),pbr.baseColorFactor.w());
-                float  metallicFactor = pbr.metallicFactor;
+                auto baseColorFactor = glm::vec4(pbr.baseColorFactor.x(), pbr.baseColorFactor.y(), pbr.baseColorFactor.z(), pbr.baseColorFactor.w());
+                float metallicFactor = pbr.metallicFactor;
                 float roughnessFactor = pbr.roughnessFactor;
 
                 auto primMat = LoadMaterial(
@@ -525,9 +575,9 @@ private:
                 auto texIndex = pbr.baseColorTexture->textureIndex;
                 const auto &tex = asset.textures[texIndex];
                 // set PBR uniforms
-                ResolveMaterial(primMat)->uniforms["baseColorFactor"] = baseColorFactor ;
-                ResolveMaterial(primMat)->uniforms["metallicFactor"] = metallicFactor ;
-                ResolveMaterial(primMat)->uniforms["roughnessFactor"] = roughnessFactor ;
+                ResolveMaterial(primMat)->uniforms["baseColorFactor"] = baseColorFactor;
+                ResolveMaterial(primMat)->uniforms["metallicFactor"] = metallicFactor;
+                ResolveMaterial(primMat)->uniforms["roughnessFactor"] = roughnessFactor;
 
                 // Read wrap/filter from the GLTF sampler if present
                 SamplerDescription sd{
@@ -538,51 +588,53 @@ private:
                     .maxAnisotropy = std::nullopt,
                 };
 
-                if (tex.samplerIndex.has_value()) {
+                if (tex.samplerIndex.has_value())
+                {
                     const auto &gltfSampler = asset.samplers[tex.samplerIndex.value()];
-                    if (gltfSampler.wrapS == fastgltf::Wrap::ClampToEdge) sd.wrapS = GL_CLAMP_TO_EDGE;
-                    if (gltfSampler.wrapT == fastgltf::Wrap::ClampToEdge) sd.wrapT = GL_CLAMP_TO_EDGE;
-                    if (gltfSampler.wrapS == fastgltf::Wrap::MirroredRepeat) sd.wrapS = GL_MIRRORED_REPEAT;
-                    if (gltfSampler.wrapT == fastgltf::Wrap::MirroredRepeat) sd.wrapT = GL_MIRRORED_REPEAT;
+                    if (gltfSampler.wrapS == fastgltf::Wrap::ClampToEdge)
+                        sd.wrapS = GL_CLAMP_TO_EDGE;
+                    if (gltfSampler.wrapT == fastgltf::Wrap::ClampToEdge)
+                        sd.wrapT = GL_CLAMP_TO_EDGE;
+                    if (gltfSampler.wrapS == fastgltf::Wrap::MirroredRepeat)
+                        sd.wrapS = GL_MIRRORED_REPEAT;
+                    if (gltfSampler.wrapT == fastgltf::Wrap::MirroredRepeat)
+                        sd.wrapT = GL_MIRRORED_REPEAT;
                 }
-
 
                 auto sampler = LoadSampler(sd, std::to_string(IdGenerator::GenerateId()));
 
-                if (pbr.baseColorTexture.has_value()) {
+                if (pbr.baseColorTexture.has_value())
+                {
                     auto texIndex = pbr.baseColorTexture->textureIndex;
                     const auto &tex = asset.textures[texIndex];
                     const auto &image = asset.images[tex.imageIndex.value()];
 
-                    if (auto *uri = std::get_if<fastgltf::sources::URI>(&image.data)) {
+                    if (auto *uri = std::get_if<fastgltf::sources::URI>(&image.data))
+                    {
                         auto texPath = gltfPath.parent_path() / uri->uri.fspath();
-                        auto baseColorTex = LoadTexture(texPath.string(), {
-                                                            .internalformat = GL_RGBA8, .hasMipmap = true
-                                                        });;
+                        auto baseColorTex = LoadTexture(texPath.string(), {.internalformat = GL_RGBA8, .hasMipmap = true});
+                        ;
                         ResolveMaterial(primMat)->textures["baseColor"] = std::make_pair(baseColorTex, sampler);
                     }
                 }
-                if (pbr.metallicRoughnessTexture.has_value()) {
+                if (pbr.metallicRoughnessTexture.has_value())
+                {
                     auto texIndex = pbr.metallicRoughnessTexture->textureIndex;
                     const auto &tex = asset.textures[texIndex];
                     const auto &image = asset.images[tex.imageIndex.value()];
 
-                    if (auto *uri = std::get_if<fastgltf::sources::URI>(&image.data)) {
+                    if (auto *uri = std::get_if<fastgltf::sources::URI>(&image.data))
+                    {
                         auto texPath = gltfPath.parent_path() / uri->uri.fspath();
-                        auto metallicRoughnessTex = LoadTexture(texPath.string(), {
-                                                            .internalformat = GL_RGBA8, .hasMipmap = true
-                                                        });;
+                        auto metallicRoughnessTex = LoadTexture(texPath.string(), {.internalformat = GL_RGBA8, .hasMipmap = true});
+                        ;
                         ResolveMaterial(primMat)->textures["metallicRoughness"] = std::make_pair(metallicRoughnessTex, sampler);
                     }
                 }
 
-
-
                 primitives.push_back(std::move(output));
             }
-
         }
-            return primitives;
-
+        return primitives;
     }
 };

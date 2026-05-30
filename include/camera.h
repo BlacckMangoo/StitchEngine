@@ -4,14 +4,19 @@
 
 #include <mesh.h>
 
-struct CameraUniformData {
+struct CameraUniformData
+{
     glm::mat4 view;
     glm::mat4 proj;
     glm::vec4 camPos;
+    float near;
+    float far;
 };
 
-struct Camera {
-    Camera() {
+struct Camera
+{
+    Camera()
+    {
         glCreateBuffers(1, &cameraUBO);
         glNamedBufferData(cameraUBO, sizeof(CameraUniformData), nullptr,
                           GL_DYNAMIC_DRAW);
@@ -22,7 +27,8 @@ struct Camera {
 
     Camera &operator=(const Camera &) = delete;
 
-    Camera(Camera &&other) noexcept {
+    Camera(Camera &&other) noexcept
+    {
         cameraUBO = other.cameraUBO;
         other.cameraUBO = 0;
         fov = other.fov;
@@ -31,8 +37,10 @@ struct Camera {
         cameraData = other.cameraData;
     }
 
-    Camera &operator=(Camera &&other) noexcept {
-        if (this != &other) {
+    Camera &operator=(Camera &&other) noexcept
+    {
+        if (this != &other)
+        {
             if (cameraUBO)
                 glDeleteBuffers(1, &cameraUBO);
 
@@ -56,22 +64,24 @@ struct Camera {
 
     CameraUniformData cameraData{};
 
-    void UpdateCamera(const Window &window, const glm::mat4 &transform) {
+    void UpdateCamera(const Window &window, const glm::mat4 &transform)
+    {
         const glm::vec3 position = glm::vec3(transform[3]);
         const glm::vec3 forward = -glm::normalize(glm::vec3(transform[2]));
         const glm::vec3 up = glm::normalize(glm::vec3(transform[1]));
 
         cameraData.camPos = glm::vec4(position, 1.0f);
-
+        cameraData.near = near;
+        cameraData.far = far;
         cameraData.view = glm::lookAt(position, position + forward, up);
 
         cameraData.proj =
-                glm::perspective(glm::radians(fov), window.aspectRatio(), near, far);
-
+            glm::perspective(glm::radians(fov), window.aspectRatio(), near, far);
         glNamedBufferSubData(cameraUBO, 0, sizeof(cameraData), &cameraData);
     }
 
-    ~Camera() {
+    ~Camera()
+    {
         glDeleteBuffers(1, &cameraUBO);
     }
 };
