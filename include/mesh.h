@@ -43,27 +43,27 @@
 struct TextureHandle
 {
     uint32_t id = UINT32_MAX;
-    bool IsValid() const { return id != UINT32_MAX; }
+    [[nodiscard]] bool IsValid() const { return id != UINT32_MAX; }
 };
 struct MeshHandle
 {
     uint32_t id = UINT32_MAX;
-    bool IsValid() const { return id != UINT32_MAX; }
+    [[nodiscard]] bool IsValid() const { return id != UINT32_MAX; }
 };
 struct MaterialHandle
 {
     uint32_t id = UINT32_MAX;
-    bool IsValid() const { return id != UINT32_MAX; }
+    [[nodiscard]] bool IsValid() const { return id != UINT32_MAX; }
 };
 struct ShaderHandle
 {
     uint32_t id = UINT32_MAX;
-    bool IsValid() const { return id != UINT32_MAX; }
+    [[nodiscard]] bool IsValid() const { return id != UINT32_MAX; }
 };
 struct SamplerHandle
 {
     uint32_t id = UINT32_MAX;
-    bool IsValid() const { return id != UINT32_MAX; }
+    [[nodiscard]] bool IsValid() const { return id != UINT32_MAX; }
 };
 
 struct Transform
@@ -147,6 +147,17 @@ inline VertexLayout PosNormTexLayout{
             // texcoord attribute
         },
     .bindings = {{0, 0, static_cast<GLsizei>(sizeof(float) * 8)}}};
+
+inline VertexLayout PosNormTexTanLayout{
+    .attributes =
+        {
+            {0, 0, 3, GL_FLOAT, GL_FALSE, 0}, // position attribute
+            {1, 0, 3, GL_FLOAT, GL_FALSE,sizeof(float) * 3}, // normal attribute
+            {2, 0, 2, GL_FLOAT, GL_FALSE,sizeof(float) * 6}, // texcoord attribute
+            {3, 0, 4, GL_FLOAT, GL_FALSE,sizeof(float) * 8}, // tangent attribute
+        },
+    .bindings = {{0, 0, static_cast<GLsizei>(sizeof(float) *12)}}};
+
 
 struct PrimitiveData
 {

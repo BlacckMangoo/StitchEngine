@@ -25,33 +25,49 @@ struct IdGenerator
 };
 
 inline std::vector<float>
-GetInterleavedPosTex(const fastgltf::Asset &asset,
+GetInterleavedPosTexTan(const fastgltf::Asset &asset,
                      const fastgltf::Primitive &primitive)
 {
     std::vector<float> vertices;
 
+    constexpr size_t floatsPerVertex = 12; // pos(3) + normal(3) + uv(2) + tangent(4)
+
     auto *positionIt = primitive.findAttribute("POSITION");
     auto *normalIt = primitive.findAttribute("NORMAL");
     auto *texCoord = primitive.findAttribute("TEXCOORD_0");
-
+    auto *tangent = primitive.findAttribute("TANGENT");
     if (positionIt == primitive.attributes.end())
         return vertices;
     if (texCoord == primitive.attributes.end())
         return vertices;
     if (normalIt == primitive.attributes.end())
         return vertices;
+    if (tangent == primitive.attributes.end())
+        return vertices;
+
 
     auto &posAccessor = asset.accessors[positionIt->accessorIndex];
     auto &normalAccessor = asset.accessors[normalIt->accessorIndex];
     auto &texAccessor = asset.accessors[texCoord->accessorIndex];
+    auto &tanAccessor = asset.accessors[tangent->accessorIndex];
+
 
     const size_t vertexCount = posAccessor.count;
-    vertices.resize(vertexCount * 8);
+    if (normalAccessor.count != vertexCount || texAccessor.count != vertexCount || tanAccessor.count != vertexCount)
+    {
+        std::cerr << "GetInterleavedPosTexTan: accessor count mismatch (pos=" << vertexCount
+                  << ", normal=" << normalAccessor.count
+                  << ", uv=" << texAccessor.count
+                  << ", tangent=" << tanAccessor.count << ")\n";
+        return {};
+    }
+
+    vertices.resize(vertexCount * floatsPerVertex);
 
     fastgltf::iterateAccessorWithIndex<fastgltf::math::fvec3>(
         asset, posAccessor, [&](fastgltf::math::fvec3 pos, std::size_t idx)
         {
-            const size_t base = idx * 8;
+            const size_t base = idx * floatsPerVertex;
             vertices[base + 0] = pos.x();
             vertices[base + 1] = pos.y();
             vertices[base + 2] = pos.z(); });
@@ -59,7 +75,7 @@ GetInterleavedPosTex(const fastgltf::Asset &asset,
     fastgltf::iterateAccessorWithIndex<fastgltf::math::fvec3>(
         asset, normalAccessor, [&](fastgltf::math::fvec3 normal, std::size_t idx)
         {
-            const size_t base = idx * 8;
+            const size_t base = idx * floatsPerVertex;
             vertices[base + 3] = normal.x();
             vertices[base + 4] = normal.y();
             vertices[base + 5] = normal.z(); });
@@ -67,9 +83,20 @@ GetInterleavedPosTex(const fastgltf::Asset &asset,
     fastgltf::iterateAccessorWithIndex<fastgltf::math::fvec2>(
         asset, texAccessor, [&](fastgltf::math::fvec2 uv, std::size_t idx)
         {
-            const size_t base = idx * 8;
+            const size_t base = idx * floatsPerVertex;
             vertices[base + 6] = uv.x();
-            vertices[base + 7] = uv.y(); });
+            vertices[base + 7] = uv.y();
+        });
+
+    fastgltf::iterateAccessorWithIndex<fastgltf::math::fvec4>(
+        asset, tanAccessor, [&](fastgltf::math::fvec4 tan, std::size_t idx)
+        {
+            const size_t base = idx * floatsPerVertex;
+            vertices[base + 8] = tan.x();
+            vertices[base + 9] = tan.y();
+            vertices[base + 10] = tan.z();
+            vertices[base + 11] = tan.w();
+        });
 
     return vertices;
 }
@@ -157,7 +184,7 @@ struct ResourceManager
             return it->second;
 
         TextureHandle handle{static_cast<uint32_t>(textures.size())};
-        TextureData data(path);
+        ImageData data(path);
         textures.push_back(std::make_shared<Texture>(data.width, data.height, desc, data.GetData()));
         textureNames[name] = handle;
         return handle;
@@ -171,7 +198,7 @@ struct ResourceManager
             return it->second;
 
         TextureHandle handle{static_cast<uint32_t>(textures.size())};
-        TextureData data(path);
+        ImageData data(path);
         textures.push_back(std::make_shared<Texture>(data.width, data.height, desc, data.GetData()));
         textureNames[name] = handle;
         return handle;
@@ -183,7 +210,8 @@ struct ResourceManager
             return it->second;
 
         const TextureHandle handle{static_cast<uint32_t>(textures.size())};
-        textures.push_back(std::make_shared<Texture>(width, height, desc));
+        const auto tex = std::make_shared<Texture>(width, height, desc);
+        textures.push_back(tex);
         textureNames[name] = handle;
         return handle;
     }
@@ -552,14 +580,20 @@ private:
 
         for (const auto &prim : mesh.primitives)
         {
-            auto vertexData = GetInterleavedPosTex(asset, prim);
+            auto vertexData = GetInterleavedPosTexTan(asset, prim);
             if (vertexData.empty())
                 continue;
 
             auto indices = GetIndices(asset, prim);
 
-            GlPrimitive output{{MakeVertexStream(vertexData)}, indices, PosNormTexLayout};
-            if (prim.materialIndex.has_value())
+            GlPrimitive output{{MakeVertexStream(vertexData)}, indices, PosNormTexTanLayout};
+
+            // Always create a material so the render path doesn't crash on invalid handles.
+            auto primMat = LoadMaterial(ShaderHandle{}, {}, {}, std::to_string(IdGenerator::GenerateId()));
+            output.material = primMat;
+            Material *primMaterial = ResolveMaterial(primMat);
+
+            if (prim.materialIndex.has_value() && primMaterial != nullptr)
             {
                 const auto &material = asset.materials[prim.materialIndex.value()];
                 const auto &pbr = material.pbrData;
@@ -568,16 +602,11 @@ private:
                 float metallicFactor = pbr.metallicFactor;
                 float roughnessFactor = pbr.roughnessFactor;
 
-                auto primMat = LoadMaterial(
-                    ShaderHandle{}, {}, {}, std::to_string(IdGenerator::GenerateId()));
-                output.material = primMat;
 
-                auto texIndex = pbr.baseColorTexture->textureIndex;
-                const auto &tex = asset.textures[texIndex];
                 // set PBR uniforms
-                ResolveMaterial(primMat)->uniforms["baseColorFactor"] = baseColorFactor;
-                ResolveMaterial(primMat)->uniforms["metallicFactor"] = metallicFactor;
-                ResolveMaterial(primMat)->uniforms["roughnessFactor"] = roughnessFactor;
+                primMaterial->uniforms["baseColorFactor"] = baseColorFactor;
+                primMaterial->uniforms["metallicFactor"] = metallicFactor;
+                primMaterial->uniforms["roughnessFactor"] = roughnessFactor;
 
                 // Read wrap/filter from the GLTF sampler if present
                 SamplerDescription sd{
@@ -588,9 +617,18 @@ private:
                     .maxAnisotropy = std::nullopt,
                 };
 
-                if (tex.samplerIndex.has_value())
+                // Prefer sampler settings from baseColorTexture (or metallicRoughnessTexture) if present.
+                auto applySamplerFromTextureIndex = [&](size_t textureIndex)
                 {
-                    const auto &gltfSampler = asset.samplers[tex.samplerIndex.value()];
+                    if (textureIndex >= asset.textures.size())
+                        return;
+                    const auto &t = asset.textures[textureIndex];
+                    if (!t.samplerIndex.has_value())
+                        return;
+                    const size_t samplerIndex = t.samplerIndex.value();
+                    if (samplerIndex >= asset.samplers.size())
+                        return;
+                    const auto &gltfSampler = asset.samplers[samplerIndex];
                     if (gltfSampler.wrapS == fastgltf::Wrap::ClampToEdge)
                         sd.wrapS = GL_CLAMP_TO_EDGE;
                     if (gltfSampler.wrapT == fastgltf::Wrap::ClampToEdge)
@@ -599,41 +637,128 @@ private:
                         sd.wrapS = GL_MIRRORED_REPEAT;
                     if (gltfSampler.wrapT == fastgltf::Wrap::MirroredRepeat)
                         sd.wrapT = GL_MIRRORED_REPEAT;
-                }
+                };
+
+                if (pbr.baseColorTexture.has_value())
+                    applySamplerFromTextureIndex(pbr.baseColorTexture->textureIndex);
+                else if (pbr.metallicRoughnessTexture.has_value())
+                    applySamplerFromTextureIndex(pbr.metallicRoughnessTexture->textureIndex);
 
                 auto sampler = LoadSampler(sd, std::to_string(IdGenerator::GenerateId()));
 
                 if (pbr.baseColorTexture.has_value())
                 {
-                    auto texIndex = pbr.baseColorTexture->textureIndex;
-                    const auto &tex = asset.textures[texIndex];
-                    const auto &image = asset.images[tex.imageIndex.value()];
-
-                    if (auto *uri = std::get_if<fastgltf::sources::URI>(&image.data))
+                    const size_t texIndex = pbr.baseColorTexture->textureIndex;
+                    if (texIndex >= asset.textures.size())
                     {
-                        auto texPath = gltfPath.parent_path() / uri->uri.fspath();
-                        auto baseColorTex = LoadTexture(texPath.string(), {.internalformat = GL_RGBA8, .hasMipmap = true});
-                        ;
-                        ResolveMaterial(primMat)->textures["baseColor"] = std::make_pair(baseColorTex, sampler);
+                        std::cerr << "LoadPrimitivesFromGltf: baseColorTexture index out of range: " << texIndex << "\n";
+                    }
+                    else
+                    {
+                        const auto &tex = asset.textures[texIndex];
+                        if (!tex.imageIndex.has_value() || tex.imageIndex.value() >= asset.images.size())
+                        {
+                            std::cerr << "LoadPrimitivesFromGltf: baseColorTexture has invalid imageIndex\n";
+                        }
+                        else
+                        {
+                            const auto &image = asset.images[tex.imageIndex.value()];
+
+                            if (auto *uri = std::get_if<fastgltf::sources::URI>(&image.data))
+                            {
+                                auto texPath = gltfPath.parent_path() / uri->uri.fspath();
+                                auto baseColorTex = LoadTexture(texPath.string(), {.internalformat = GL_RGBA8, .hasMipmap = true});
+                                primMaterial->textures["baseColor"] = std::make_pair(baseColorTex, sampler);
+                            }
+                        }
                     }
                 }
                 if (pbr.metallicRoughnessTexture.has_value())
                 {
-                    auto texIndex = pbr.metallicRoughnessTexture->textureIndex;
-                    const auto &tex = asset.textures[texIndex];
-                    const auto &image = asset.images[tex.imageIndex.value()];
-
-                    if (auto *uri = std::get_if<fastgltf::sources::URI>(&image.data))
+                    const size_t texIndex = pbr.metallicRoughnessTexture->textureIndex;
+                    if (texIndex >= asset.textures.size())
                     {
-                        auto texPath = gltfPath.parent_path() / uri->uri.fspath();
-                        auto metallicRoughnessTex = LoadTexture(texPath.string(), {.internalformat = GL_RGBA8, .hasMipmap = true});
-                        ;
-                        ResolveMaterial(primMat)->textures["metallicRoughness"] = std::make_pair(metallicRoughnessTex, sampler);
+                        std::cerr << "LoadPrimitivesFromGltf: metallicRoughnessTexture index out of range: " << texIndex << "\n";
+                    }
+                    else
+                    {
+                        const auto &tex = asset.textures[texIndex];
+                        if (!tex.imageIndex.has_value() || tex.imageIndex.value() >= asset.images.size())
+                        {
+                            std::cerr << "LoadPrimitivesFromGltf: metallicRoughnessTexture has invalid imageIndex\n";
+                        }
+                        else
+                        {
+                            const auto &image = asset.images[tex.imageIndex.value()];
+
+                            if (auto *uri = std::get_if<fastgltf::sources::URI>(&image.data))
+                            {
+                                auto texPath = gltfPath.parent_path() / uri->uri.fspath();
+                                auto metallicRoughnessTex = LoadTexture(texPath.string(), {.internalformat = GL_RGBA8, .hasMipmap = true});
+                                primMaterial->textures["metallicRoughness"] = std::make_pair(metallicRoughnessTex, sampler);
+                            }
+                        }
                     }
                 }
 
-                primitives.push_back(std::move(output));
+                if (material.occlusionTexture.has_value())
+                {
+                    const size_t texIndex = material.occlusionTexture->textureIndex;
+                    if (texIndex >= asset.textures.size())
+                    {
+                        std::cerr << "LoadPrimitivesFromGltf: occlusionTexture index out of range: " << texIndex << "\n";
+                    }
+                    else
+                    {
+                        const auto &tex = asset.textures[texIndex];
+                        if (!tex.imageIndex.has_value() || tex.imageIndex.value() >= asset.images.size())
+                        {
+                            std::cerr << "LoadPrimitivesFromGltf: occlusionTexture has invalid imageIndex\n";
+                        }
+                        else
+                        {
+                            const auto &image = asset.images[tex.imageIndex.value()];
+
+                            if (auto *uri = std::get_if<fastgltf::sources::URI>(&image.data))
+                            {
+                                auto texPath = gltfPath.parent_path() / uri->uri.fspath();
+                                auto occlusionTex = LoadTexture(texPath.string(), {.internalformat = GL_RGBA8, .hasMipmap = true});
+                                primMaterial->textures["occlusion"] = std::make_pair(occlusionTex, sampler);
+                            }
+                        }
+                    }
+                }
+
+                if (material.normalTexture.has_value())
+                {
+                    const size_t texIndex = material.normalTexture->textureIndex;
+                    if (texIndex >= asset.textures.size())
+                    {
+                        std::cerr << "LoadPrimitivesFromGltf: normalTexture index out of range: " << texIndex << "\n";
+                    }
+                    else
+                    {
+                        const auto &tex = asset.textures[texIndex];
+                        if (!tex.imageIndex.has_value() || tex.imageIndex.value() >= asset.images.size())
+                        {
+                            std::cerr << "LoadPrimitivesFromGltf: normalTexture has invalid imageIndex\n";
+                        }
+                        else
+                        {
+                            const auto &image = asset.images[tex.imageIndex.value()];
+
+                            if (auto *uri = std::get_if<fastgltf::sources::URI>(&image.data))
+                            {
+                                auto texPath = gltfPath.parent_path() / uri->uri.fspath();
+                                auto normalTex = LoadTexture(texPath.string(), {.internalformat = GL_RGBA8, .hasMipmap = true});
+                                primMaterial->textures["normalMap"] = std::make_pair(normalTex, sampler);
+                            }
+                        }
+                    }
+                }
             }
+
+            primitives.push_back(std::move(output));
         }
         return primitives;
     }

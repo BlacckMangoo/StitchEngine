@@ -3,10 +3,8 @@
   <component name="VcsDirectoryMappings">
     <mapping directory="" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/assets/glTF-Sample-Assets" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/assets/models/Sponza" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/build/assets/glTF-Sample-Assets" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/external/fastgltf" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/external/imgui" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/out/build/x64-Debug-new/assets/glTF-Sample-Assets" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/out/build/x64-Debug-new/assets/models/Sponza" vcs="Git" />
   </component>
 </project>

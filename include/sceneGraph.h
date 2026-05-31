@@ -1,18 +1,6 @@
-#pragma ocnce
+#pragma once
 
-struct DirectionalLight
-{
-    glm::vec3 direction;
-    glm::vec3 color;
-    float size;
-};
-
-struct PointLight
-{
-    glm::vec3 color;
-    float intensity;
-    float radius;
-};
+#include "Lights.h"
 
 struct SceneNode;
 

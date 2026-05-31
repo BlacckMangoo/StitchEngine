@@ -23,9 +23,9 @@ struct TextureDescription
     bool hasMipmap;
 };
 
-struct TextureData
+struct ImageData
 {
-    TextureData(const std::string &path)
+    explicit ImageData(const std::string &path)
     {
         stbi_set_flip_vertically_on_load(true);
         data = stbi_load(path.c_str(), &width, &height, &channels, 4);
@@ -42,9 +42,9 @@ struct TextureData
     int height;
     int channels;
 
-    unsigned char *GetData() const { return data; }
+    [[nodiscard]] unsigned char *GetData() const { return data; }
 
-    ~TextureData()
+    ~ImageData()
     {
         if (data)
         {

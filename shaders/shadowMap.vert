@@ -1,5 +1,7 @@
 #version 460 core 
 
+// writes to depth map , from the persepective of the Directional Light
+
 
 layout(location = 0) in vec3 pos;
 

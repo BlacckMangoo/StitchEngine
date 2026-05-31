@@ -31,26 +31,6 @@ const VertexStream cubeVertexStream = MakeVertexStream(cubeInterleavedDataPosNor
 const VertexStream quadVertexStream = MakeVertexStream(QuadInterleavedDataPosNormTex);
 const VertexStream quadForFullScreenVertexStream = MakeVertexStream(QuadInterleavedData);
 
-inline glm::mat4 CalculateLightSpaceMatrix(const DirectionalLight &dirLight)
-{
-    glm::vec3 lightDir = glm::normalize(dirLight.direction);
-    glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f);
-    if (glm::abs(glm::dot(lightDir, up)) > 0.99f)
-    {
-        up = glm::vec3(1.0f, 0.0f, 0.0f);
-    }
-    glm::vec3 right = glm::normalize(glm::cross(up, lightDir));
-    up = glm::normalize(glm::cross(lightDir, right));
-
-    glm::mat4 lightView = glm::lookAt(-lightDir * 10.0f, // Position the light source far in the direction opposite to its direction
-                                      glm::vec3(0.0f),   // Look at the origin
-                                      up);               // Up vector
-
-    float orthoSize = 20.0f;
-    glm::mat4 lightProjection = glm::ortho(-orthoSize, orthoSize, -orthoSize, orthoSize, 1.0f, 20.0f);
-
-    return lightProjection * lightView;
-}
 
 void ImguiInit(const Window &window)
 {
@@ -82,8 +62,11 @@ int main()
     TextureDescription TexDesc{.internalformat = GL_RGBA8, .hasMipmap = true};
     TextureDescription posDesc{.internalformat = GL_RGB32F, .hasMipmap = false};
     TextureDescription depthDesc{.internalformat = GL_DEPTH_COMPONENT24, .hasMipmap = false};
+
     auto catTexture = resourceManager.LoadTexture("assets/img.png", TexDesc, "catTexture");
     auto metalTexture = resourceManager.LoadTexture("assets/metal.jpg", TexDesc, "metalTexture");
+
+
 
     float maxAniso = 0.0f;
     glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY, &maxAniso);
@@ -93,6 +76,14 @@ int main()
         .wrapS = GL_REPEAT,
         .wrapT = GL_REPEAT,
         .maxAnisotropy = maxAniso,
+    };
+
+    SamplerDescription skySamplerDesc{
+        .minFilter = GL_LINEAR,
+        .magFilter = GL_LINEAR,
+        .wrapS = GL_CLAMP_TO_EDGE,
+        .wrapT = GL_CLAMP_TO_EDGE,
+        .maxAnisotropy = std::nullopt,
     };
 
     auto sampler = resourceManager.LoadSampler(samplerDesc, "sampler");
@@ -106,12 +97,20 @@ int main()
         .maxAnisotropy = std::nullopt,
     };
 
+    //sky
+    auto skyHdrTex = resourceManager.LoadTexture("assets/sky.hdr", {.internalformat = GL_RGB16F, .hasMipmap = false}, "skyHdrTexture");
+
+    FrameBuffer skyBuffer;
+    skyBuffer.AddColorAttachment(resourceManager.ResolveTexture(skyHdrTex)->id);
+    skyBuffer.FinalizeColorAttachments();
+    skyBuffer.Validate();
+
+
+
     auto colorTex = resourceManager.CreateRenderTarget(window.width(), window.height(), rtDesc,
                                                        "colorTargetTexture");
     auto PosTex = resourceManager.CreateRenderTarget(window.width(), window.height(), posDesc,
                                                      "PositionTexture");
-    auto uvTex = resourceManager.CreateRenderTarget(window.width(), window.height(), rtDesc,
-                                                    "UvTexture");
     auto normalTex = resourceManager.CreateRenderTarget(window.width(), window.height(), posDesc,
                                                         "NormalTexture");
     auto depthTex = resourceManager.CreateRenderTarget(window.width(), window.height(), depthDesc,
@@ -120,6 +119,7 @@ int main()
     // Sampler frameBufferSampler(rtSamplerDesc);
     resourceManager.LoadSampler(rtSamplerDesc, "frameBufferSampler");
 
+    auto HDRTexDesc = TextureDescription{.internalformat = GL_RGBA16F, .hasMipmap = false};
     FrameBuffer shadowMapBuffer;
     auto shadowMapTex = resourceManager.CreateRenderTarget(2048, 2048, depthDesc, "shadowMapTexture");
     shadowMapBuffer.AddDepthAttachmentTexture(resourceManager.ResolveTexture(shadowMapTex)->id);
@@ -130,7 +130,6 @@ int main()
 
     gBuffer.AddColorAttachment(resourceManager.ResolveTexture(colorTex)->id);
     gBuffer.AddColorAttachment(resourceManager.ResolveTexture(PosTex)->id);
-    gBuffer.AddColorAttachment(resourceManager.ResolveTexture(uvTex)->id);
     gBuffer.AddColorAttachment(resourceManager.ResolveTexture(normalTex)->id);
     gBuffer.AddDepthAttachmentTexture(resourceManager.ResolveTexture(depthTex)->id);
 
@@ -142,7 +141,7 @@ int main()
     glCreateRenderbuffers(1, &lightingPassRBO);
     glNamedRenderbufferStorage(lightingPassRBO, GL_DEPTH_COMPONENT24, window.width(), window.height());
 
-    auto litSceneTex = resourceManager.CreateRenderTarget(window.width(), window.height(), posDesc, "litSceneTexture");
+    auto litSceneTex = resourceManager.CreateRenderTarget(window.width(), window.height(), HDRTexDesc, "litSceneTexture");
 
     FrameBuffer lightingPassBuffer;
 
@@ -151,6 +150,7 @@ int main()
     lightingPassBuffer.FinalizeColorAttachments();
     lightingPassBuffer.Validate();
 
+    auto skyBoxShader = resourceManager.LoadShader("shaders/sky.vert", "shaders/sky.frag", "skyBoxShader");
     auto defaultShader = resourceManager.LoadShader("shaders/vertexShader.vert",
                                                     "shaders/fragShader.frag", "defaultShader");
     auto fsShader = resourceManager.LoadShader("shaders/frameBufferVert.vert",
@@ -165,7 +165,8 @@ int main()
 
     DirectionalLight dirLight{
         .direction = {0.5f, 1.0f, 0.5f},
-        .color = {1.0f, 1.0f, 1.0f}};
+        .color = {1.0f, 1.0f, 1.0f},
+    .size = 20.0f};
 
     std::vector<PointLight> pointLights{
         {.color = {1.0f, 0.0f, 0.0f},
@@ -371,11 +372,6 @@ int main()
                     resourceManager.GetSampler("frameBufferSampler"));
             }
 
-            if (glfwGetKey(window.get(), GLFW_KEY_U) == GLFW_PRESS)
-            {
-                resourceManager.ResolveMaterial(resourceManager.GetMaterial("fullScreenMat"))->textures["screen"] = std::make_pair(
-                    resourceManager.GetTexture("UvTexture"), resourceManager.GetSampler("frameBufferSampler"));
-            }
 
             if (glfwGetKey(window.get(), GLFW_KEY_P) == GLFW_PRESS)
             {
